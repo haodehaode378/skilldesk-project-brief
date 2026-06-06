@@ -98,13 +98,14 @@ The Tauri app should call this same scanner boundary rather than duplicate scan 
 1. Create Tauri + React + TypeScript app.
 2. Add shared model types and zod schemas.
 3. Add fixture `ScanReport`.
-4. Build UI from fixture data.
-5. Implement scanner root discovery and file walking.
-6. Implement skill parsing.
-7. Implement command and agent discovery.
-8. Implement MCP config discovery without probes.
-9. Add optional local MCP probe boundary.
-10. Wire scanner result into UI.
+4. Add Chinese-first i18n string structure with English fallback.
+5. Build UI from fixture data.
+6. Implement scanner root discovery and file walking.
+7. Implement skill parsing.
+8. Implement command and agent discovery.
+9. Implement MCP config discovery without probes.
+10. Add optional local MCP probe boundary.
+11. Wire scanner result into UI.
 
 ## First Tests
 
@@ -117,6 +118,7 @@ Add tests before broad scanning:
 - Mojibake detection.
 - Health issue aggregation.
 - Scan report totals.
+- Locale switching.
 
 ## Commands To Expect After Scaffold
 

@@ -13,6 +13,8 @@ SkillDesk is a Windows-first local health dashboard for agent extensions:
 
 SkillDesk is not an agent runner.
 
+SkillDesk is a Chinese-first bilingual product. The default UI language is Chinese. Users should be able to switch between Chinese and English in Settings.
+
 ```text
 Elves runs agents.
 SkillDesk audits the local ecosystem agents depend on.
@@ -68,6 +70,8 @@ Architecture baseline:
 - Cache: JSON first, SQLite later.
 - Tests: Vitest for scanner and model logic.
 - Package manager: pnpm.
+- Default UI language: Chinese.
+- Supported UI languages: Chinese and English.
 - UI prototyping: OpenPencil.
 - Image generation: optional prompt generation only; not an MVP dependency.
 
@@ -85,6 +89,8 @@ It should scan and report on:
 - Plugin-bundled skills at summary level.
 - MCP server configurations and lightweight health status.
 - Project instruction files.
+
+The MVP should default to Chinese UI copy and include a Settings language switch for Chinese and English.
 
 It must not:
 
@@ -177,6 +183,7 @@ When updating project docs:
 - Use `UI_SPEC.md` before implementing frontend views.
 - Keep changes surgical and avoid speculative features.
 - Preserve Windows examples.
+- Preserve the Chinese-first bilingual product decision.
 - Run a mojibake check after editing Chinese text.
 
 ## Verification

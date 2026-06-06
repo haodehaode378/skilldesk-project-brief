@@ -25,6 +25,8 @@ type SourceKind =
 
 type HealthStatus = "ok" | "needs-review" | "at-risk" | "broken";
 
+type Locale = "zh-CN" | "en-US";
+
 type IssueSeverity = "info" | "low" | "medium" | "high";
 
 type IssueCategory =
@@ -258,6 +260,24 @@ type ScanTotals = {
   byStatus: Record<HealthStatus, number>;
 };
 ```
+
+## App Settings
+
+```ts
+type AppSettings = {
+  locale: Locale;
+  scanRoots: string[];
+  includePluginCaches: boolean;
+  mcpProbePolicy: "disabled" | "local-only" | "all";
+};
+```
+
+Guidance:
+
+- Default `locale` is `zh-CN`.
+- Scanner entities should remain language-neutral.
+- UI labels should be localized separately from scan data.
+- Recommendations may include stable issue codes so translated UI copy can map them to localized messages later.
 
 ## Cache Shape
 

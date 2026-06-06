@@ -2,6 +2,8 @@
 
 SkillDesk should feel like a local developer operations tool: dense, calm, fast to scan, and focused on maintenance decisions.
 
+SkillDesk is Chinese-first. The default interface language is Chinese, with English available from Settings.
+
 ## Product UI Principle
 
 The first screen is the dashboard, not a landing page.
@@ -26,13 +28,13 @@ Prefer:
 
 Primary navigation:
 
-- Overview
-- Extensions
-- MCP Servers
-- Plugins
-- Sources
-- Issues
-- Settings
+- 概览 / Overview
+- 扩展 / Extensions
+- MCP 服务 / MCP Servers
+- 插件 / Plugins
+- 来源 / Sources
+- 问题 / Issues
+- 设置 / Settings
 
 Top bar:
 
@@ -213,6 +215,25 @@ Required controls:
 
 The include plugin cache toggle should be off or summary-only by default.
 
+## Settings View
+
+Purpose: keep product-wide preferences explicit.
+
+Required controls:
+
+- language: Chinese / English
+- scan roots
+- plugin cache mode
+- MCP probe policy
+- report export preferences
+
+Language behavior:
+
+- Chinese is the default.
+- English is available from Settings.
+- Language choice should be stored locally.
+- Scanner output data remains language-neutral; UI labels and recommendations are localized at presentation time where practical.
+
 ## Issues View
 
 Purpose: prioritize maintenance work.
@@ -252,6 +273,7 @@ Do not rely on color alone. Pair color with text and icons.
 
 Components should handle:
 
+- Chinese and English labels
 - long Windows paths
 - long skill names
 - missing metadata

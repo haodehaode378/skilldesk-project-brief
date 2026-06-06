@@ -16,6 +16,12 @@ Chinese positioning:
 SkillDesk: 面向 Codex 和 Claude Code 的本地 Agent 扩展生态体检工作台。
 ```
 
+Default product language:
+
+```text
+Chinese by default, with a Settings switch for Chinese and English.
+```
+
 ## Why This Name
 
 SkillDesk is short, product-like, and not tied to one agent platform. It suggests a local workbench for viewing, organizing, checking, and maintaining skills. It also avoids the overly generic `skill-manager` name, which is already crowded on GitHub.
@@ -115,6 +121,7 @@ Existing tools already cover parts of this space:
 SkillDesk should differentiate by being:
 
 - **Windows-first**: strong support for Windows paths, PowerShell, and local desktop workflows.
+- **Chinese-first bilingual UI**: Chinese is the default interface language, with English available from Settings.
 - **Codex + Claude Code first**: not too broad in the MVP.
 - **Health-dashboard first**: scanning, validation, quality checks, version state, and review.
 - **Git-aware**: track GitHub-backed skills, dirty state, branch, commit, ahead/behind, and update availability.
@@ -360,6 +367,8 @@ The first version should be read-only.
 MVP requirements:
 
 - Scan configurable local directories.
+- Default the interface to Chinese.
+- Provide a Settings language switch between Chinese and English.
 - Detect Codex skills from `SKILL.md`.
 - Detect Claude Code skill/command/agent folders where present.
 - Detect plugin manifests and plugin-bundled skills at summary level.

@@ -4,6 +4,8 @@
 
 Build the first read-only SkillDesk version as a Windows-first desktop dashboard for local agent extensions.
 
+The UI defaults to Chinese and supports switching between Chinese and English in Settings.
+
 The MVP should answer:
 
 - What local agent extensions exist?
@@ -40,6 +42,8 @@ The MVP does not:
 - Open embedded terminals.
 - Manage memory or session replay.
 - Require cloud accounts.
+
+It also does not require machine translation or AI translation services for core UI text. Core UI strings should be maintained as product copy.
 
 ## Default Scan Roots
 
@@ -157,6 +161,14 @@ The first desktop UI should include:
 - Plugins view.
 - Sources view.
 - Issues view.
+- Settings view.
+
+Settings must include:
+
+- language switch: Chinese / English
+- scan root preferences
+- plugin cache scan mode
+- MCP probe policy
 
 Overview should show:
 
@@ -182,6 +194,7 @@ The MVP is acceptable when:
 - It does not display secrets or raw auth/log/session content.
 - It can export or print a JSON scan report.
 - It runs as a local Tauri desktop app.
+- It starts in Chinese by default and can switch to English from Settings.
 
 ## Verification Criteria
 
@@ -192,3 +205,4 @@ Before calling MVP complete:
 - Mojibake detection catches known bad samples.
 - MCP probe tests use a fixture or controlled local server.
 - UI renders non-empty dashboard, list, and detail views from fixture data.
+- Bilingual UI string coverage exists for primary navigation, dashboard labels, status labels, and Settings.
