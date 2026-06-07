@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 
+import {
+  loadCachedReport,
+  loadLocale,
+  saveCachedReport,
+  saveLocale,
+} from './app/cache'
 import { appCopy, nextLocale } from './app/i18n'
 import './App.css'
 import { fixtureScanReport } from './fixtures'
@@ -52,15 +58,18 @@ function formatKind(kind: EntityKind) {
 }
 
 function App() {
-  const [locale, setLocale] = useState<Locale>('zh-CN')
+  const [locale, setLocale] = useState<Locale>(() => loadLocale())
+  const [initialCachedReport] = useState(() => loadCachedReport())
   const [activeView, setActiveView] = useState<ViewKey>('overview')
-  const [report, setReport] = useState<ScanReport>(fixtureScanReport)
+  const [report, setReport] = useState<ScanReport>(
+    () => initialCachedReport ?? fixtureScanReport,
+  )
   const [scanState, setScanState] = useState<'fixture' | 'scanning' | 'local' | 'error'>(
-    'fixture',
+    () => (initialCachedReport ? 'local' : 'fixture'),
   )
   const [scanError, setScanError] = useState('')
   const [selectedEntityId, setSelectedEntityId] = useState(
-    fixtureScanReport.entities[0]?.id ?? '',
+    (initialCachedReport ?? fixtureScanReport).entities[0]?.id ?? '',
   )
   const copy = appCopy[locale]
   const totals = report.totals
@@ -76,6 +85,7 @@ function App() {
       const result = await invoke('scan_local_extensions')
       const parsedReport = scanReportSchema.parse(result)
       setReport(parsedReport)
+      saveCachedReport(parsedReport)
       setSelectedEntityId(parsedReport.entities[0]?.id ?? '')
       setScanState('local')
     } catch (error) {
@@ -121,7 +131,11 @@ function App() {
             <button
               type="button"
               className="secondary-button"
-              onClick={() => setLocale(nextLocale(locale))}
+              onClick={() => {
+                const next = nextLocale(locale)
+                setLocale(next)
+                saveLocale(next)
+              }}
             >
               {copy.dashboard.languageButton}
             </button>

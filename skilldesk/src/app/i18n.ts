@@ -125,7 +125,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       sourcesTitle: '来源',
       issuesTitle: '问题',
       settingsTitle: '设置',
-      settingsBody: '这些设置目前是界面预览，真实持久化会在 scanner 接入后实现。',
+      settingsBody: '界面语言和最近一次扫描报告会缓存在本机浏览器存储中。',
       languageSetting: '界面语言',
       pluginCacheMode: '插件缓存扫描',
       mcpProbePolicy: 'MCP 探测策略',
@@ -193,7 +193,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       issuesTitle: 'Issues',
       settingsTitle: 'Settings',
       settingsBody:
-        'These settings are UI preview values. Persistence will be added after the scanner is wired.',
+        'Interface language and the latest scan report are cached in local browser storage.',
       languageSetting: 'Interface language',
       pluginCacheMode: 'Plugin cache scanning',
       mcpProbePolicy: 'MCP probe policy',
