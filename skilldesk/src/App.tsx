@@ -179,6 +179,12 @@ function App() {
     report.entities.find((entity) => entity.id === selectedEntityId) ??
     report.entities[0]
 
+  function toggleLocale() {
+    const next = nextLocale(locale)
+    setLocale(next)
+    saveLocale(next)
+  }
+
   async function scanLocalRoots() {
     setScanState('scanning')
     setScanError('')
@@ -271,11 +277,7 @@ function App() {
             <button
               type="button"
               className="secondary-button"
-              onClick={() => {
-                const next = nextLocale(locale)
-                setLocale(next)
-                saveLocale(next)
-              }}
+              onClick={toggleLocale}
             >
               {copy.dashboard.languageButton}
             </button>
@@ -351,6 +353,7 @@ function App() {
             onIncludePluginCachesChange={(includePluginCaches) =>
               setSettings((current) => ({ ...current, includePluginCaches }))
             }
+            onLocaleToggle={toggleLocale}
             onClearCache={clearReportCache}
           />
         )}
@@ -375,6 +378,14 @@ function OverviewView({
   scanError: string
 }) {
   const isLocalReport = scanState === 'local' || scanState === 'cached'
+  const mojibakeIssueCount = report.issues.filter(
+    (issue) => issue.category === 'encoding',
+  ).length
+  const dirtyGitSourceCount = new Set(
+    report.entities
+      .filter((entity) => entity.git?.dirty)
+      .map((entity) => entity.git?.root),
+  ).size
 
   return (
     <>
@@ -384,7 +395,11 @@ function OverviewView({
         <SummaryCard label={copy.dashboard.summary.mcpServers} value={totals.mcpServers} />
         <SummaryCard label={copy.dashboard.summary.broken} value={totals.byStatus.broken} />
         <SummaryCard label={copy.dashboard.summary.skills} value={totals.skills} />
+        <SummaryCard label={copy.dashboard.summary.commands} value={totals.commands} />
+        <SummaryCard label={copy.dashboard.summary.agents} value={totals.agents} />
         <SummaryCard label={copy.dashboard.summary.plugins} value={totals.plugins} />
+        <SummaryCard label={copy.dashboard.summary.mojibake} value={mojibakeIssueCount} />
+        <SummaryCard label={copy.dashboard.summary.dirtyGitSources} value={dirtyGitSourceCount} />
       </section>
 
       <section className="panel">
@@ -898,12 +913,14 @@ function SettingsView({
   locale,
   settings,
   onIncludePluginCachesChange,
+  onLocaleToggle,
   onClearCache,
 }: {
   copy: typeof appCopy['zh-CN']
   locale: Locale
   settings: AppSettings
   onIncludePluginCachesChange: (includePluginCaches: boolean) => void
+  onLocaleToggle: () => void
   onClearCache: () => void
 }) {
   return (
@@ -912,7 +929,12 @@ function SettingsView({
       <dl className="settings-list">
         <div>
           <dt>{copy.views.languageSetting}</dt>
-          <dd>{locale}</dd>
+          <dd className="setting-inline">
+            <span>{locale}</span>
+            <button type="button" className="secondary-button" onClick={onLocaleToggle}>
+              {copy.dashboard.languageButton}
+            </button>
+          </dd>
         </div>
         <div>
           <dt>{copy.views.pluginCacheMode}</dt>

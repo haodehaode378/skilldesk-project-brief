@@ -28,7 +28,11 @@ type AppCopy = {
       mcpServers: string
       broken: string
       skills: string
+      commands: string
+      agents: string
       plugins: string
+      mojibake: string
+      dirtyGitSources: string
     }
     panelTitle: string
     panelBody: string
@@ -192,7 +196,11 @@ export const appCopy: Record<Locale, AppCopy> = {
         mcpServers: 'MCP 服务',
         broken: '已损坏',
         skills: 'Skills',
+        commands: '命令',
+        agents: 'Agents',
         plugins: '插件',
+        mojibake: '疑似乱码',
+        dirtyGitSources: 'Git 未提交来源',
       },
       panelTitle: '正在使用示例扫描数据',
       panelBody:
@@ -357,7 +365,11 @@ export const appCopy: Record<Locale, AppCopy> = {
         mcpServers: 'MCP servers',
         broken: 'Broken',
         skills: 'Skills',
+        commands: 'Commands',
+        agents: 'Agents',
         plugins: 'Plugins',
+        mojibake: 'Possible mojibake',
+        dirtyGitSources: 'Dirty Git sources',
       },
       panelTitle: 'Using fixture scan data',
       panelBody:

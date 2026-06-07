@@ -128,7 +128,7 @@ button:focus-visible {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -613,6 +613,13 @@ tbody tr:hover,
   width: 16px;
   height: 16px;
   margin: 0;
+}
+
+.setting-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 
 .settings-actions {
