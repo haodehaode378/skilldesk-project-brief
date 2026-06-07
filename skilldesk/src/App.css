@@ -258,7 +258,8 @@ button:focus-visible {
   font-size: 12px;
 }
 
-.search-field input {
+.search-field input,
+select {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -268,7 +269,8 @@ button:focus-visible {
   padding: 9px 10px;
 }
 
-.search-field input:focus {
+.search-field input:focus,
+select:focus {
   border-color: var(--focus);
   outline: 2px solid var(--focus);
   outline-offset: 1px;

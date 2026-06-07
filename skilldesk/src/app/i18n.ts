@@ -164,6 +164,8 @@ type AppCopy = {
     readOnlyScanning: string
     pluginCacheSummaryOnly: string
     mcpProbeDisabled: string
+    mcpProbeLocalOnly: string
+    mcpProbeAll: string
     readOnlyNotice: string
   }
 }
@@ -336,6 +338,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       readOnlyScanning: '只读扫描',
       pluginCacheSummaryOnly: '仅汇总 manifest 和内置资源数量',
       mcpProbeDisabled: '已禁用主动连接探测',
+      mcpProbeLocalOnly: '仅允许本地 MCP 轻量探测',
+      mcpProbeAll: '允许本地和远程 MCP 轻量探测',
       readOnlyNotice: '只读模式：不会执行脚本、hooks、插件命令或 Agent 任务。',
     },
   },
@@ -509,6 +513,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       readOnlyScanning: 'Read-only scanning',
       pluginCacheSummaryOnly: 'Manifest and bundled resource counts only',
       mcpProbeDisabled: 'Active connection probing is disabled',
+      mcpProbeLocalOnly: 'Allow local MCP lightweight probes only',
+      mcpProbeAll: 'Allow local and remote MCP lightweight probes',
       readOnlyNotice:
         'Read-only mode: scripts, hooks, plugin commands, and agent tasks are never executed.',
     },

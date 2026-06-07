@@ -149,6 +149,19 @@ function formatReportSource(
   return labels[scanState]
 }
 
+function formatMcpProbePolicy(
+  policy: AppSettings['mcpProbePolicy'],
+  copy: typeof appCopy['zh-CN'],
+) {
+  const labels: Record<AppSettings['mcpProbePolicy'], string> = {
+    disabled: copy.views.mcpProbeDisabled,
+    'local-only': copy.views.mcpProbeLocalOnly,
+    all: copy.views.mcpProbeAll,
+  }
+
+  return labels[policy]
+}
+
 function App() {
   const [locale, setLocale] = useState<Locale>(() => loadLocale())
   const [initialCachedReport] = useState(() => loadCachedReport())
@@ -366,6 +379,9 @@ function App() {
               updateSettings({ includePluginCaches })
             }
             onScanRootsChange={(scanRoots) => updateSettings({ scanRoots })}
+            onMcpProbePolicyChange={(mcpProbePolicy) =>
+              updateSettings({ mcpProbePolicy })
+            }
             onLocaleToggle={toggleLocale}
             onClearCache={clearReportCache}
           />
@@ -762,7 +778,7 @@ function SourcesView({
         />
         <CapabilityItem
           label={copy.views.mcpProbePolicy}
-          value={copy.views.mcpProbeDisabled}
+          value={formatMcpProbePolicy(settings.mcpProbePolicy, copy)}
         />
       </div>
       {report.roots.length > 0 ? (
@@ -927,6 +943,7 @@ function SettingsView({
   settings,
   onIncludePluginCachesChange,
   onScanRootsChange,
+  onMcpProbePolicyChange,
   onLocaleToggle,
   onClearCache,
 }: {
@@ -935,6 +952,7 @@ function SettingsView({
   settings: AppSettings
   onIncludePluginCachesChange: (includePluginCaches: boolean) => void
   onScanRootsChange: (scanRoots: string[]) => void
+  onMcpProbePolicyChange: (mcpProbePolicy: AppSettings['mcpProbePolicy']) => void
   onLocaleToggle: () => void
   onClearCache: () => void
 }) {
@@ -972,7 +990,20 @@ function SettingsView({
         </div>
         <div>
           <dt>{copy.views.mcpProbePolicy}</dt>
-          <dd>{copy.views.mcpProbeDisabled}</dd>
+          <dd>
+            <select
+              value={settings.mcpProbePolicy}
+              onChange={(event) =>
+                onMcpProbePolicyChange(
+                  event.currentTarget.value as AppSettings['mcpProbePolicy'],
+                )
+              }
+            >
+              <option value="disabled">{copy.views.mcpProbeDisabled}</option>
+              <option value="local-only">{copy.views.mcpProbeLocalOnly}</option>
+              <option value="all">{copy.views.mcpProbeAll}</option>
+            </select>
+          </dd>
         </div>
         <div>
           <dt>{copy.views.defaultScanRoots}</dt>
