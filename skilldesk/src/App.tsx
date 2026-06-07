@@ -162,10 +162,10 @@ function formatMcpProbePolicy(
   return labels[policy]
 }
 
-function App() {
+function App({ initialView = 'overview' }: { initialView?: ViewKey } = {}) {
   const [locale, setLocale] = useState<Locale>(() => loadLocale())
   const [initialCachedReport] = useState(() => loadCachedReport())
-  const [activeView, setActiveView] = useState<ViewKey>('overview')
+  const [activeView, setActiveView] = useState<ViewKey>(initialView)
   const [report, setReport] = useState<ScanReport>(
     () => initialCachedReport ?? fixtureScanReport,
   )
