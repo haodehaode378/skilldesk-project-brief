@@ -610,9 +610,31 @@ function SourcesView({
   copy: typeof appCopy['zh-CN']
   report: ScanReport
 }) {
+  const scannedRoots = report.roots.filter((root) => root.status === 'scanned')
+  const missingRoots = report.roots.filter((root) => root.status === 'missing')
+  const skippedRoots = report.roots.filter((root) => root.status === 'skipped')
+  const errorRoots = report.roots.filter((root) => root.status === 'error')
+
   return (
     <section className="table-panel">
       <SectionHeading title={copy.views.sourcesTitle} body={copy.views.readOnlyNotice} />
+      <section className="source-health-grid" aria-label={copy.views.scannerSelfCheck}>
+        <SourceHealthItem label={copy.labels.scanned} value={scannedRoots.length} />
+        <SourceHealthItem label={copy.labels.missing} value={missingRoots.length} />
+        <SourceHealthItem label={copy.labels.skipped} value={skippedRoots.length} />
+        <SourceHealthItem label={copy.labels.errors} value={errorRoots.length} />
+      </section>
+      <div className="capability-list" aria-label={copy.views.scannerCapabilities}>
+        <CapabilityItem label={copy.views.readOnlyScanning} value={copy.labels.enabled} />
+        <CapabilityItem
+          label={copy.views.pluginCacheMode}
+          value={copy.views.pluginCacheSummaryOnly}
+        />
+        <CapabilityItem
+          label={copy.views.mcpProbePolicy}
+          value={copy.views.mcpProbeDisabled}
+        />
+      </div>
       {report.roots.length > 0 ? (
         <table>
           <thead>
@@ -638,6 +660,24 @@ function SourcesView({
         <EmptyState message={copy.labels.emptySources} />
       )}
     </section>
+  )
+}
+
+function SourceHealthItem({ label, value }: { label: string; value: number }) {
+  return (
+    <article>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </article>
+  )
+}
+
+function CapabilityItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   )
 }
 

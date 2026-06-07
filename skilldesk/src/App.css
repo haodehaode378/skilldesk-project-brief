@@ -294,6 +294,60 @@ button:focus-visible {
   color: var(--bg);
 }
 
+.source-health-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.source-health-grid article {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 12px;
+}
+
+.source-health-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.source-health-grid strong {
+  color: var(--text-h);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.capability-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.capability-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding: 10px 0 0;
+}
+
+.capability-list span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.capability-list strong {
+  color: var(--text-h);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+}
+
 .empty-state {
   border-top: 1px solid var(--border);
   color: var(--muted);
@@ -529,6 +583,10 @@ code {
   }
 
   .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .source-health-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

@@ -64,6 +64,10 @@ type AppCopy = {
     transport: string
     tools: string
     roots: string
+    scanned: string
+    missing: string
+    skipped: string
+    errors: string
     git: string
     gitRoot: string
     branch: string
@@ -111,6 +115,9 @@ type AppCopy = {
     defaultScanRoots: string
     scanSafety: string
     scanSafetyBody: string
+    scannerSelfCheck: string
+    scannerCapabilities: string
+    readOnlyScanning: string
     pluginCacheSummaryOnly: string
     mcpProbeDisabled: string
     readOnlyNotice: string
@@ -184,6 +191,10 @@ export const appCopy: Record<Locale, AppCopy> = {
       transport: '传输',
       tools: '工具',
       roots: '扫描来源',
+      scanned: '已扫描',
+      missing: '缺失',
+      skipped: '已跳过',
+      errors: '出错',
       git: 'Git',
       gitRoot: '仓库',
       branch: '分支',
@@ -232,6 +243,9 @@ export const appCopy: Record<Locale, AppCopy> = {
       scanSafety: '扫描安全',
       scanSafetyBody:
         '当前版本只读取文件元数据和安全摘要，不执行脚本、hooks、插件命令或 Agent 任务。',
+      scannerSelfCheck: '扫描器自检',
+      scannerCapabilities: '扫描能力',
+      readOnlyScanning: '只读扫描',
       pluginCacheSummaryOnly: '仅汇总 manifest 和内置资源数量',
       mcpProbeDisabled: '已禁用主动连接探测',
       readOnlyNotice: '只读模式：不会执行脚本、hooks、插件命令或 Agent 任务。',
@@ -303,6 +317,10 @@ export const appCopy: Record<Locale, AppCopy> = {
       transport: 'Transport',
       tools: 'Tools',
       roots: 'Scan roots',
+      scanned: 'Scanned',
+      missing: 'Missing',
+      skipped: 'Skipped',
+      errors: 'Errors',
       git: 'Git',
       gitRoot: 'Repository',
       branch: 'Branch',
@@ -353,6 +371,9 @@ export const appCopy: Record<Locale, AppCopy> = {
       scanSafety: 'Scan safety',
       scanSafetyBody:
         'This version only reads file metadata and safe summaries. It never executes scripts, hooks, plugin commands, or agent tasks.',
+      scannerSelfCheck: 'Scanner self-check',
+      scannerCapabilities: 'Scanner capabilities',
+      readOnlyScanning: 'Read-only scanning',
       pluginCacheSummaryOnly: 'Manifest and bundled resource counts only',
       mcpProbeDisabled: 'Active connection probing is disabled',
       readOnlyNotice:
