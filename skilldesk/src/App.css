@@ -390,24 +390,78 @@ dd {
   color: var(--text-h);
 }
 
-.issue-list {
+.issue-card-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 0;
+}
+
+.issue-card {
   display: grid;
   gap: 8px;
-  padding: 0;
-  margin: 16px 0 0;
-  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 12px;
 }
 
-.issue-list li {
+.issue-card header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.issue-card p {
+  color: var(--text-h);
+  margin: 0;
+}
+
+.issue-card dl {
   display: grid;
-  gap: 4px;
-  border-top: 1px solid var(--border);
-  padding-top: 10px;
+  gap: 8px;
+  margin: 0;
 }
 
-.issue-list strong {
+.issue-card dd {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.issue-card-compact {
+  padding: 10px;
+}
+
+.severity-badge {
+  border-radius: 999px;
+  padding: 3px 8px;
   color: var(--text-h);
   font-size: 12px;
+  font-weight: 600;
+}
+
+.severity-info {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.severity-low {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.severity-medium {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.severity-high {
+  color: #991b1b;
+  background: #fee2e2;
 }
 
 code {

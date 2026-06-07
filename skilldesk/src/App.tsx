@@ -15,6 +15,7 @@ import type {
   AppSettings,
   EntityKind,
   HealthStatus,
+  HealthIssue,
   IssueSeverity,
   Locale,
   ManagedEntity,
@@ -600,26 +601,11 @@ function IssuesView({
         onChange={onSeverityFilterChange}
       />
       {filteredIssues.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>{copy.labels.severity}</th>
-              <th>{copy.labels.kind}</th>
-              <th>{copy.labels.issues}</th>
-              <th>{copy.labels.path}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredIssues.map((issue) => (
-              <tr key={issue.id}>
-                <td>{formatSeverity(issue.severity, copy)}</td>
-                <td>{issue.category}</td>
-                <td>{issue.message}</td>
-                <td className="path-cell">{issue.file ?? '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="issue-card-list">
+          {filteredIssues.map((issue) => (
+            <IssueCard key={issue.id} copy={copy} issue={issue} />
+          ))}
+        </div>
       ) : (
         <EmptyState
           message={
@@ -708,20 +694,15 @@ function IssuesPreview({
   return (
     <section className="table-panel">
       <SectionHeading title={copy.views.issuesTitle} />
-      <ul className="issue-list">
-        {report.issues.length > 0 ? (
-          report.issues.map((issue) => (
-            <li key={issue.id}>
-              <strong>{issue.severity}</strong>
-              <span>{issue.message}</span>
-            </li>
-          ))
-        ) : (
-          <li>
-            <span>{copy.labels.emptyIssues}</span>
-          </li>
-        )}
-      </ul>
+      {report.issues.length > 0 ? (
+        <div className="issue-card-list">
+          {report.issues.slice(0, 4).map((issue) => (
+            <IssueCard key={issue.id} copy={copy} issue={issue} compact />
+          ))}
+        </div>
+      ) : (
+        <EmptyState message={copy.labels.emptyIssues} />
+      )}
     </section>
   )
 }
@@ -826,15 +807,62 @@ function DetailPanel({
           </dl>
         </>
       )}
-      <ul className="issue-list">
-        {entity.health.issues.map((issue) => (
-          <li key={issue.id}>
-            <strong>{issue.severity}</strong>
-            <span>{issue.recommendation ?? issue.message}</span>
-          </li>
-        ))}
-      </ul>
+      {entity.health.issues.length > 0 ? (
+        <div className="issue-card-list">
+          {entity.health.issues.map((issue) => (
+            <IssueCard key={issue.id} copy={copy} issue={issue} compact />
+          ))}
+        </div>
+      ) : (
+        <EmptyState message={copy.labels.emptyIssues} />
+      )}
     </aside>
+  )
+}
+
+function IssueCard({
+  copy,
+  issue,
+  compact = false,
+}: {
+  copy: typeof appCopy['zh-CN']
+  issue: HealthIssue
+  compact?: boolean
+}) {
+  return (
+    <article className={compact ? 'issue-card issue-card-compact' : 'issue-card'}>
+      <header>
+        <span className={`severity-badge severity-${issue.severity}`}>
+          {formatSeverity(issue.severity, copy)}
+        </span>
+        <span>{issue.category}</span>
+      </header>
+      <p>{issue.message}</p>
+      {issue.recommendation && (
+        <dl>
+          <div>
+            <dt>{copy.labels.recommendation}</dt>
+            <dd>{issue.recommendation}</dd>
+          </div>
+        </dl>
+      )}
+      {!compact && issue.evidence && (
+        <dl>
+          <div>
+            <dt>{copy.labels.evidence}</dt>
+            <dd className="path-cell">{issue.evidence}</dd>
+          </div>
+        </dl>
+      )}
+      {!compact && issue.file && (
+        <dl>
+          <div>
+            <dt>{copy.labels.path}</dt>
+            <dd className="path-cell">{issue.file}</dd>
+          </div>
+        </dl>
+      )}
+    </article>
   )
 }
 

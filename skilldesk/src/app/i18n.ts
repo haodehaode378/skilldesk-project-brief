@@ -55,6 +55,8 @@ type AppCopy = {
     dirty: string
     clean: string
     enabled: string
+    recommendation: string
+    evidence: string
     statusOk: string
     statusNeedsReview: string
     statusAtRisk: string
@@ -155,6 +157,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       dirty: '有未提交变化',
       clean: '干净',
       enabled: '已启用',
+      recommendation: '建议',
+      evidence: '证据',
       statusOk: '正常',
       statusNeedsReview: '需要复查',
       statusAtRisk: '有风险',
@@ -254,6 +258,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       dirty: 'Dirty',
       clean: 'Clean',
       enabled: 'Enabled',
+      recommendation: 'Recommendation',
+      evidence: 'Evidence',
       statusOk: 'OK',
       statusNeedsReview: 'Needs review',
       statusAtRisk: 'At risk',
