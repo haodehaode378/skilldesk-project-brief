@@ -259,6 +259,64 @@ describe('scanReportSchema', () => {
     expect(report.totals.mcpServers).toBe(1)
   })
 
+  it('accepts Codex config.toml MCP server entities', () => {
+    const report = scanReportSchema.parse({
+      schemaVersion: '0.1',
+      generatedAt: '2026-06-07T10:35:00Z',
+      machine: {
+        platform: 'win32',
+      },
+      roots: [
+        {
+          path: 'C:\\Users\\example\\.codex\\config.toml',
+          kind: 'file',
+          status: 'scanned',
+        },
+      ],
+      entities: [
+        {
+          id: 'mcp-server:codex:c--users-example--codex-config-toml',
+          kind: 'mcp-server',
+          platform: 'codex',
+          name: 'openpencil',
+          path: 'C:\\Users\\example\\.codex\\config.toml',
+          source: 'local',
+          tags: [],
+          discoveredAt: '2026-06-07T10:35:00Z',
+          health: {
+            status: 'needs-review',
+            issues: [],
+          },
+          configPath: 'C:\\Users\\example\\.codex\\config.toml',
+          transport: 'stdio',
+          command: 'openpencil-mcp',
+          argsCount: 1,
+          probe: {
+            attempted: false,
+          },
+        },
+      ],
+      totals: {
+        entities: 1,
+        skills: 0,
+        commands: 0,
+        agents: 0,
+        plugins: 0,
+        mcpServers: 1,
+        instructionFiles: 0,
+        byStatus: {
+          ok: 0,
+          'needs-review': 1,
+          'at-risk': 0,
+          broken: 0,
+        },
+      },
+      issues: [],
+    })
+
+    expect(report.entities[0]?.platform).toBe('codex')
+  })
+
   it('accepts local scanner shaped plugin entities', () => {
     const report = scanReportSchema.parse({
       schemaVersion: '0.1',

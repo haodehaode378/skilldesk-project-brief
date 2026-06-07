@@ -47,7 +47,13 @@ pub fn scan_local_extensions() -> Value {
             &mut entities,
             &mut issues,
         );
-        register_file_root(&home.join(".codex").join("config.toml"), &mut roots);
+        scan_codex_config_toml(
+            &home.join(".codex").join("config.toml"),
+            &now,
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
         scan_markdown_root(
             &home.join(".claude").join("commands"),
             "command",
@@ -389,6 +395,69 @@ fn scan_mcp_json_file(
     }
 }
 
+fn scan_codex_config_toml(
+    file: &Path,
+    discovered_at: &str,
+    roots: &mut Vec<Value>,
+    entities: &mut Vec<Value>,
+    report_issues: &mut Vec<Value>,
+) {
+    if !file.exists() {
+        roots.push(root_result(file, "file", "missing", None));
+        return;
+    }
+
+    if !file.is_file() {
+        roots.push(root_result(
+            file,
+            "file",
+            "error",
+            Some("Configured Codex config path is not a file."),
+        ));
+        return;
+    }
+
+    roots.push(root_result(file, "file", "scanned", None));
+    let content = match fs::read_to_string(file) {
+        Ok(content) => content,
+        Err(error) => {
+            report_issues.push(json!({
+              "id": issue_id("codex-config-read", file),
+              "severity": "low",
+              "category": "path",
+              "message": "SkillDesk could not read Codex config.toml.",
+              "file": file.to_string_lossy(),
+              "evidence": error.to_string(),
+            }));
+            return;
+        }
+    };
+
+    let parsed: toml::Value = match toml::from_str(&content) {
+        Ok(parsed) => parsed,
+        Err(error) => {
+            report_issues.push(json!({
+              "id": issue_id("codex-config-toml", file),
+              "severity": "medium",
+              "category": "format",
+              "message": "Codex config.toml could not be parsed.",
+              "file": file.to_string_lossy(),
+              "evidence": error.to_string(),
+            }));
+            return;
+        }
+    };
+
+    for (server_name, server_config) in codex_mcp_tables(&parsed) {
+        entities.push(build_codex_mcp_server_entity(
+            &server_name,
+            &server_config,
+            file,
+            discovered_at,
+        ));
+    }
+}
+
 fn scan_skill_root(
     root: &Path,
     platform: &str,
@@ -696,6 +765,54 @@ fn build_mcp_server_entity(
     Value::Object(entity)
 }
 
+fn build_codex_mcp_server_entity(
+    name: &str,
+    config: &toml::Value,
+    config_path: &Path,
+    discovered_at: &str,
+) -> Value {
+    let command = toml_string(config, "command");
+    let url = toml_string(config, "url");
+    let transport = codex_mcp_transport(config, command.as_deref(), url.as_deref());
+    let health = mcp_health(name, config_path, command.as_deref(), url.as_deref());
+    let mut entity = base_entity(
+        "mcp-server",
+        "codex",
+        name,
+        config_path.parent().unwrap_or(config_path),
+        config_path,
+        discovered_at,
+        None,
+        None,
+        health,
+    );
+    entity.insert(
+        "configPath".to_string(),
+        json!(config_path.to_string_lossy()),
+    );
+    entity.insert("transport".to_string(), json!(transport));
+    entity.insert(
+        "probe".to_string(),
+        json!({
+          "attempted": false,
+        }),
+    );
+    if let Some(value) = command {
+        entity.insert("command".to_string(), json!(value));
+    }
+    if let Some(args_count) = config
+        .get("args")
+        .and_then(toml::Value::as_array)
+        .map(Vec::len)
+    {
+        entity.insert("argsCount".to_string(), json!(args_count));
+    }
+    if let Some(host) = url.as_deref().and_then(url_host) {
+        entity.insert("urlHost".to_string(), json!(host));
+    }
+    Value::Object(entity)
+}
+
 fn build_skill_entity(root: &Path, skill_md: &Path, platform: &str, discovered_at: &str) -> Value {
     let skill_dir = skill_md.parent().unwrap_or(root);
     let name = skill_dir
@@ -985,14 +1102,6 @@ fn mcp_health(name: &str, config_path: &Path, command: Option<&str>, url: Option
     })
 }
 
-fn register_file_root(path: &Path, roots: &mut Vec<Value>) {
-    if path.exists() && path.is_file() {
-        roots.push(root_result(path, "file", "scanned", None));
-    } else {
-        roots.push(root_result(path, "file", "missing", None));
-    }
-}
-
 fn root_result(path: &Path, kind: &str, status: &str, reason: Option<&str>) -> Value {
     let mut root = Map::new();
     root.insert("path".to_string(), json!(path.to_string_lossy()));
@@ -1106,6 +1215,50 @@ fn mcp_transport(config: &Value, command: Option<&str>, url: Option<&str>) -> &'
     } else {
         "unknown"
     }
+}
+
+fn codex_mcp_tables(parsed: &toml::Value) -> Vec<(String, toml::Value)> {
+    for key in ["mcp_servers", "mcpServers"] {
+        if let Some(table) = parsed.get(key).and_then(toml::Value::as_table) {
+            return table
+                .iter()
+                .map(|(name, config)| (name.to_string(), config.clone()))
+                .collect();
+        }
+    }
+
+    Vec::new()
+}
+
+fn codex_mcp_transport(
+    config: &toml::Value,
+    command: Option<&str>,
+    url: Option<&str>,
+) -> &'static str {
+    if let Some(transport) = toml_string(config, "transport") {
+        return match transport.as_str() {
+            "stdio" => "stdio",
+            "sse" => "sse",
+            "streamable-http" => "streamable-http",
+            "http" => "http",
+            _ => "unknown",
+        };
+    }
+
+    if command.is_some() {
+        "stdio"
+    } else if url.is_some() {
+        "http"
+    } else {
+        "unknown"
+    }
+}
+
+fn toml_string(config: &toml::Value, key: &str) -> Option<String> {
+    config
+        .get(key)
+        .and_then(toml::Value::as_str)
+        .map(ToString::to_string)
 }
 
 fn url_host(url: &str) -> Option<String> {
