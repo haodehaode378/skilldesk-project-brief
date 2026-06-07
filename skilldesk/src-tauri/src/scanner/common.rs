@@ -1,5 +1,5 @@
 use serde_json::{json, Map, Value};
-use std::{fs, path::Path, time::SystemTime};
+use std::{collections::HashMap, fs, path::Path, time::SystemTime};
 
 pub(crate) fn root_result(path: &Path, kind: &str, status: &str, reason: Option<&str>) -> Value {
     let mut root = Map::new();
@@ -80,6 +80,72 @@ pub(crate) fn aggregate_report_issues(
     }
 
     report_issues
+}
+
+pub(crate) fn apply_duplicate_name_issues(entities: &mut [Value]) {
+    let mut groups: HashMap<String, Vec<usize>> = HashMap::new();
+
+    for (index, entity) in entities.iter().enumerate() {
+        let Some(kind) = entity.get("kind").and_then(Value::as_str) else {
+            continue;
+        };
+        let Some(platform) = entity.get("platform").and_then(Value::as_str) else {
+            continue;
+        };
+        let Some(name) = entity.get("name").and_then(Value::as_str) else {
+            continue;
+        };
+
+        groups
+            .entry(format!(
+                "{}:{}:{}",
+                kind,
+                platform,
+                name.to_ascii_lowercase()
+            ))
+            .or_default()
+            .push(index);
+    }
+
+    for indexes in groups.values().filter(|indexes| indexes.len() > 1) {
+        for index in indexes {
+            let Some(entity) = entities.get_mut(*index) else {
+                continue;
+            };
+            let path = entity
+                .get("path")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            let name = entity
+                .get("name")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            let issue = json!({
+              "id": format!("duplicate-name:{}", stable_path_id(Path::new(path))),
+              "severity": "low",
+              "category": "duplication",
+              "message": format!("Duplicate extension name '{}' found for the same platform and kind.", name),
+              "file": path,
+              "recommendation": "Rename or remove duplicate entries if this causes ambiguous agent behavior.",
+            });
+
+            append_health_issue(entity, issue);
+        }
+    }
+}
+
+fn append_health_issue(entity: &mut Value, issue: Value) {
+    let Some(health) = entity.get_mut("health").and_then(Value::as_object_mut) else {
+        return;
+    };
+    if let Some(issues) = health.get_mut("issues").and_then(Value::as_array_mut) {
+        issues.push(issue);
+    }
+
+    let current_status = health.get("status").and_then(Value::as_str).unwrap_or("ok");
+    if current_status == "ok" {
+        health.insert("status".to_string(), json!("needs-review"));
+    }
 }
 
 pub(crate) fn manifest_count(manifest: &Value, key: &str) -> Option<usize> {
@@ -380,5 +446,49 @@ mod tests {
         let issues = aggregate_report_issues(&[entity], vec![root_issue]);
 
         assert_eq!(issues.len(), 2);
+    }
+
+    #[test]
+    fn marks_duplicate_names_for_same_kind_and_platform() {
+        let mut entities = vec![
+            json!({
+              "kind": "skill",
+              "platform": "codex",
+              "name": "docs",
+              "path": "C:\\one\\docs",
+              "health": {
+                "status": "ok",
+                "issues": []
+              }
+            }),
+            json!({
+              "kind": "skill",
+              "platform": "codex",
+              "name": "Docs",
+              "path": "C:\\two\\docs",
+              "health": {
+                "status": "ok",
+                "issues": []
+              }
+            }),
+        ];
+
+        apply_duplicate_name_issues(&mut entities);
+
+        assert_eq!(
+            entities[0]
+                .get("health")
+                .and_then(|health| health.get("status"))
+                .and_then(Value::as_str),
+            Some("needs-review")
+        );
+        assert_eq!(
+            entities[1]
+                .get("health")
+                .and_then(|health| health.get("issues"))
+                .and_then(Value::as_array)
+                .map(Vec::len),
+            Some(1)
+        );
     }
 }

@@ -26,12 +26,9 @@ pub(crate) fn instruction_health(name: &str, file: &Path, content: &str) -> Valu
           "recommendation": "Keep project instruction files focused so agents can load them reliably.",
         }));
     }
+    issues.extend(suspicious_content_issues(file, content));
 
-    let status = if issues.is_empty() {
-        "ok"
-    } else {
-        "needs-review"
-    };
+    let status = status_for_issues(&issues);
 
     json!({
       "status": status,
@@ -52,12 +49,11 @@ pub(crate) fn plugin_health(name: &str, manifest_path: &Path, manifest: &Value) 
           "recommendation": "Add a stable name field to plugin.json.",
         }));
     }
+    if let Some(serialized) = serde_json::to_string(manifest).ok() {
+        issues.extend(suspicious_content_issues(manifest_path, &serialized));
+    }
 
-    let status = if issues.is_empty() {
-        "ok"
-    } else {
-        "needs-review"
-    };
+    let status = status_for_issues(&issues);
 
     json!({
       "status": status,
@@ -94,12 +90,9 @@ pub(crate) fn skill_health(
           "recommendation": "Add a clear first paragraph explaining when the skill should be used.",
         }));
     }
+    issues.extend(suspicious_content_issues(skill_md, content));
 
-    let status = if issues.is_empty() {
-        "ok"
-    } else {
-        "needs-review"
-    };
+    let status = status_for_issues(&issues);
 
     json!({
       "status": status,
@@ -137,17 +130,93 @@ pub(crate) fn markdown_health(
           "recommendation": "Add a clear summary explaining when this file should be used.",
         }));
     }
+    issues.extend(suspicious_content_issues(file, content));
 
-    let status = if issues.is_empty() {
-        "ok"
-    } else {
-        "needs-review"
-    };
+    let status = status_for_issues(&issues);
 
     json!({
       "status": status,
       "issues": issues,
     })
+}
+
+fn suspicious_content_issues(file: &Path, content: &str) -> Vec<Value> {
+    let patterns = [
+        ("shell", "powershell"),
+        ("shell", "cmd.exe"),
+        ("shell", "bash -c"),
+        ("network", "Invoke-WebRequest"),
+        ("network", "curl "),
+        ("network", "wget "),
+        ("eval", "eval("),
+        ("eval", "child_process"),
+        ("credential", "process.env"),
+        ("credential", "Authorization:"),
+        ("credential", "api_key"),
+        ("credential", "OPENAI_API_KEY"),
+    ];
+    let lower_content = content.to_ascii_lowercase();
+    let mut issues = Vec::new();
+
+    for (kind, pattern) in patterns {
+        if lower_content.contains(&pattern.to_ascii_lowercase()) {
+            issues.push(json!({
+              "id": issue_id(&format!("suspicious-{}", kind), file),
+              "severity": "medium",
+              "category": "security",
+              "message": format!("Suspicious {} handling pattern found: {}.", kind, pattern),
+              "file": file.to_string_lossy(),
+              "recommendation": "Review this content manually before trusting or executing related commands.",
+            }));
+            break;
+        }
+    }
+
+    issues
+}
+
+fn status_for_issues(issues: &[Value]) -> &'static str {
+    if issues.is_empty() {
+        return "ok";
+    }
+
+    if issues.iter().any(|issue| {
+        issue.get("category").and_then(Value::as_str) == Some("security")
+            || issue.get("severity").and_then(Value::as_str) == Some("high")
+    }) {
+        return "at-risk";
+    }
+
+    "needs-review"
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn marks_suspicious_skill_content_as_at_risk() {
+        let health = skill_health(
+            "network-skill",
+            Path::new("C:\\skills\\network\\SKILL.md"),
+            "# Network Skill\nUse when checking a command.\n\nRun curl https://example.com",
+            Some("Use when checking a command."),
+        );
+
+        assert_eq!(
+            health.get("status").and_then(Value::as_str),
+            Some("at-risk")
+        );
+        assert_eq!(
+            health
+                .get("issues")
+                .and_then(Value::as_array)
+                .and_then(|issues| issues.first())
+                .and_then(|issue| issue.get("category"))
+                .and_then(Value::as_str),
+            Some("security")
+        );
+    }
 }
 
 pub(crate) fn mcp_health(

@@ -88,6 +88,7 @@ pub fn scan_local_extensions() -> Value {
         scan_instruction_files(&current_dir, &now, &mut roots, &mut entities, &mut issues);
     }
 
+    apply_duplicate_name_issues(&mut entities);
     let issues = aggregate_report_issues(&entities, issues);
     let totals = calculate_totals(&entities);
     let mut machine = Map::new();
