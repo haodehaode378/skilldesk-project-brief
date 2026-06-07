@@ -7,6 +7,7 @@ use std::{
 
 const SCHEMA_VERSION: &str = "0.1";
 const MAX_SKILL_SCAN_DEPTH: usize = 8;
+const MAX_MARKDOWN_SCAN_DEPTH: usize = 8;
 
 #[tauri::command]
 pub fn scan_local_extensions() -> Value {
@@ -39,8 +40,22 @@ pub fn scan_local_extensions() -> Value {
         }
 
         register_file_root(&home.join(".codex").join("config.toml"), &mut roots);
-        register_directory_root(&home.join(".claude").join("commands"), &mut roots);
-        register_directory_root(&home.join(".claude").join("agents"), &mut roots);
+        scan_markdown_root(
+            &home.join(".claude").join("commands"),
+            "command",
+            &now,
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
+        scan_markdown_root(
+            &home.join(".claude").join("agents"),
+            "agent",
+            &now,
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
         register_directory_root(&home.join(".claude").join("mcp-configs"), &mut roots);
     }
 
@@ -60,6 +75,78 @@ pub fn scan_local_extensions() -> Value {
       "totals": totals,
       "issues": issues,
     })
+}
+
+fn scan_markdown_root(
+    root: &Path,
+    entity_kind: &str,
+    discovered_at: &str,
+    roots: &mut Vec<Value>,
+    entities: &mut Vec<Value>,
+    report_issues: &mut Vec<Value>,
+) {
+    if !root.exists() {
+        roots.push(root_result(root, "directory", "missing", None));
+        return;
+    }
+
+    if !root.is_dir() {
+        roots.push(root_result(
+            root,
+            "directory",
+            "error",
+            Some("Configured markdown root is not a directory."),
+        ));
+        return;
+    }
+
+    roots.push(root_result(root, "directory", "scanned", None));
+    let mut markdown_files = Vec::new();
+    collect_markdown_files(root, 0, &mut markdown_files, report_issues);
+
+    for file in markdown_files {
+        let entity = match entity_kind {
+            "command" => build_command_entity(root, &file, discovered_at),
+            "agent" => build_agent_entity(root, &file, discovered_at),
+            _ => continue,
+        };
+        entities.push(entity);
+    }
+}
+
+fn collect_markdown_files(
+    dir: &Path,
+    depth: usize,
+    markdown_files: &mut Vec<PathBuf>,
+    report_issues: &mut Vec<Value>,
+) {
+    if depth > MAX_MARKDOWN_SCAN_DEPTH || should_skip_path(dir) {
+        return;
+    }
+
+    let entries = match fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(error) => {
+            report_issues.push(json!({
+              "id": issue_id("path", dir),
+              "severity": "low",
+              "category": "path",
+              "message": "SkillDesk could not read a configured directory.",
+              "file": dir.to_string_lossy(),
+              "evidence": error.to_string(),
+            }));
+            return;
+        }
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() && !should_skip_path(&path) {
+            collect_markdown_files(&path, depth + 1, markdown_files, report_issues);
+        } else if path.extension().is_some_and(|extension| extension == "md") {
+            markdown_files.push(path);
+        }
+    }
 }
 
 fn scan_skill_root(
@@ -137,6 +224,57 @@ fn collect_skill_files(
     }
 }
 
+fn build_command_entity(root: &Path, file: &Path, discovered_at: &str) -> Value {
+    let name = file_stem(file, "command");
+    let content = fs::read_to_string(file).unwrap_or_default();
+    let (title, description) = parse_markdown_text(&content);
+    let health = markdown_health("command", &name, file, &content, description.as_deref());
+    let mut entity = base_entity(
+        "command",
+        "claude-code",
+        &name,
+        root,
+        file,
+        discovered_at,
+        title,
+        description,
+        health,
+    );
+    entity.insert("commandType".to_string(), json!("slash-command"));
+    entity.insert("file".to_string(), json!(file.to_string_lossy()));
+    if let Some(namespace) = namespace_for(root, file) {
+        entity.insert("namespace".to_string(), json!(namespace));
+    }
+    Value::Object(entity)
+}
+
+fn build_agent_entity(root: &Path, file: &Path, discovered_at: &str) -> Value {
+    let name = file_stem(file, "agent");
+    let content = fs::read_to_string(file).unwrap_or_default();
+    let (title, description) = parse_markdown_text(&content);
+    let health = markdown_health("agent", &name, file, &content, description.as_deref());
+    let mut entity = base_entity(
+        "agent",
+        "claude-code",
+        &name,
+        root,
+        file,
+        discovered_at,
+        title,
+        description,
+        health,
+    );
+    entity.insert("file".to_string(), json!(file.to_string_lossy()));
+    entity.insert(
+        "declaredTools".to_string(),
+        json!(parse_declared_tools(&content)),
+    );
+    if let Some(model) = parse_declared_field(&content, "model") {
+        entity.insert("declaredModel".to_string(), json!(model));
+    }
+    Value::Object(entity)
+}
+
 fn build_skill_entity(root: &Path, skill_md: &Path, platform: &str, discovered_at: &str) -> Value {
     let skill_dir = skill_md.parent().unwrap_or(root);
     let name = skill_dir
@@ -185,6 +323,10 @@ fn build_skill_entity(root: &Path, skill_md: &Path, platform: &str, discovered_a
 }
 
 fn parse_skill_text(content: &str) -> (Option<String>, Option<String>) {
+    parse_markdown_text(content)
+}
+
+fn parse_markdown_text(content: &str) -> (Option<String>, Option<String>) {
     let mut title = None;
     let mut description = None;
 
@@ -209,6 +351,50 @@ fn parse_skill_text(content: &str) -> (Option<String>, Option<String>) {
     (title, description)
 }
 
+fn base_entity(
+    kind: &str,
+    platform: &str,
+    name: &str,
+    root: &Path,
+    file: &Path,
+    discovered_at: &str,
+    title: Option<String>,
+    description: Option<String>,
+    health: Value,
+) -> Map<String, Value> {
+    let path = if kind == "skill" {
+        file.parent().unwrap_or(root)
+    } else {
+        file
+    };
+    let mut entity = Map::new();
+    entity.insert(
+        "id".to_string(),
+        json!(format!("{}:{}:{}", kind, platform, stable_path_id(path))),
+    );
+    entity.insert("kind".to_string(), json!(kind));
+    entity.insert("platform".to_string(), json!(platform));
+    entity.insert("name".to_string(), json!(name));
+    if let Some(value) = title {
+        entity.insert("title".to_string(), json!(value));
+    }
+    if let Some(value) = description {
+        entity.insert("description".to_string(), json!(value));
+    }
+    entity.insert("path".to_string(), json!(path.to_string_lossy()));
+    entity.insert("source".to_string(), json!("local"));
+    entity.insert("tags".to_string(), json!([]));
+    entity.insert("discoveredAt".to_string(), json!(discovered_at));
+    if let Some(value) = modified_iso(file) {
+        entity.insert("lastModified".to_string(), json!(value));
+    }
+    if let Some(value) = file_fingerprint(file) {
+        entity.insert("fingerprint".to_string(), json!(value));
+    }
+    entity.insert("health".to_string(), health);
+    entity
+}
+
 fn skill_health(name: &str, skill_md: &Path, content: &str, description: Option<&str>) -> Value {
     let mut issues = Vec::new();
 
@@ -231,6 +417,49 @@ fn skill_health(name: &str, skill_md: &Path, content: &str, description: Option<
           "message": format!("Skill '{}' has a weak or missing description.", name),
           "file": skill_md.to_string_lossy(),
           "recommendation": "Add a clear first paragraph explaining when the skill should be used.",
+        }));
+    }
+
+    let status = if issues.is_empty() {
+        "ok"
+    } else {
+        "needs-review"
+    };
+
+    json!({
+      "status": status,
+      "issues": issues,
+    })
+}
+
+fn markdown_health(
+    kind: &str,
+    name: &str,
+    file: &Path,
+    content: &str,
+    description: Option<&str>,
+) -> Value {
+    let mut issues = Vec::new();
+
+    if content.trim().is_empty() {
+        issues.push(json!({
+          "id": issue_id("empty-markdown", file),
+          "severity": "medium",
+          "category": "format",
+          "message": format!("{} '{}' is empty.", kind, name),
+          "file": file.to_string_lossy(),
+          "recommendation": "Add a concise description and usage instructions.",
+        }));
+    }
+
+    if description.is_none_or(|value| value.chars().count() < 16) {
+        issues.push(json!({
+          "id": issue_id("weak-description", file),
+          "severity": "low",
+          "category": "metadata",
+          "message": format!("{} '{}' has a weak or missing description.", kind, name),
+          "file": file.to_string_lossy(),
+          "recommendation": "Add a clear summary explaining when this file should be used.",
         }));
     }
 
@@ -279,10 +508,15 @@ fn calculate_totals(entities: &[Value]) -> Value {
     let mut at_risk = 0;
     let mut broken = 0;
     let mut skills = 0;
+    let mut commands = 0;
+    let mut agents = 0;
 
     for entity in entities {
-        if entity.get("kind").and_then(Value::as_str) == Some("skill") {
-            skills += 1;
+        match entity.get("kind").and_then(Value::as_str) {
+            Some("skill") => skills += 1,
+            Some("command") => commands += 1,
+            Some("agent") => agents += 1,
+            _ => {}
         }
 
         match entity
@@ -301,8 +535,8 @@ fn calculate_totals(entities: &[Value]) -> Value {
     json!({
       "entities": entities.len(),
       "skills": skills,
-      "commands": 0,
-      "agents": 0,
+      "commands": commands,
+      "agents": agents,
       "plugins": 0,
       "mcpServers": 0,
       "instructionFiles": 0,
@@ -313,6 +547,50 @@ fn calculate_totals(entities: &[Value]) -> Value {
         "broken": broken,
       },
     })
+}
+
+fn file_stem(path: &Path, fallback: &str) -> String {
+    path.file_stem()
+        .map(|value| value.to_string_lossy().to_string())
+        .unwrap_or_else(|| fallback.to_string())
+}
+
+fn namespace_for(root: &Path, file: &Path) -> Option<String> {
+    let parent = file.parent()?;
+    let relative = parent.strip_prefix(root).ok()?;
+    let namespace = relative.to_string_lossy().replace('\\', "/");
+    if namespace.is_empty() {
+        None
+    } else {
+        Some(namespace)
+    }
+}
+
+fn parse_declared_tools(content: &str) -> Vec<String> {
+    parse_declared_field(content, "tools")
+        .map(|value| {
+            value
+                .split(',')
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToString::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn parse_declared_field(content: &str, key: &str) -> Option<String> {
+    let field_prefix = format!("{}:", key);
+    for line in content.lines().take(40) {
+        let trimmed = line.trim();
+        if trimmed.starts_with(&field_prefix) {
+            let value = trimmed.trim_start_matches(&field_prefix).trim();
+            if !value.is_empty() {
+                return Some(value.trim_matches('"').trim_matches('\'').to_string());
+            }
+        }
+    }
+    None
 }
 
 fn existing_child_paths(root: &Path, child_name: &str) -> Vec<String> {
