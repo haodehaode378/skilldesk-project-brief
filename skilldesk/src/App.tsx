@@ -1038,6 +1038,7 @@ function DetailPanel({
           <dd className="path-cell">{entity.path}</dd>
         </div>
       </dl>
+      <EntityKindDetails copy={copy} entity={entity} />
       {entity.git && (
         <>
           <SectionHeading title={copy.labels.git} />
@@ -1076,6 +1077,145 @@ function DetailPanel({
       )}
     </aside>
   )
+}
+
+function EntityKindDetails({
+  copy,
+  entity,
+}: {
+  copy: typeof appCopy['zh-CN']
+  entity: ManagedEntity
+}) {
+  switch (entity.kind) {
+    case 'skill':
+      return (
+        <dl className="entity-kind-details">
+          <OptionalDetailRow
+            label={copy.labels.declaredVersion}
+            value={entity.declaredVersion}
+          />
+          <DetailRow label={copy.labels.skillFile} value={entity.files.skillMd} isPath />
+          <DetailRow label="openai.yaml" value={entity.files.openaiYaml ?? '-'} isPath />
+          <DetailRow label="CLAUDE.md" value={entity.files.claudeMd ?? '-'} isPath />
+          <DetailRow label={copy.labels.scripts} value={entity.files.scripts.length} />
+          <DetailRow label={copy.labels.references} value={entity.files.references.length} />
+          <DetailRow label={copy.labels.assets} value={entity.files.assets.length} />
+        </dl>
+      )
+
+    case 'command':
+      return (
+        <dl className="entity-kind-details">
+          <DetailRow label={copy.labels.commandType} value={entity.commandType} />
+          <DetailRow label={copy.labels.namespace} value={entity.namespace ?? '-'} />
+          <DetailRow label={copy.labels.file} value={entity.file} isPath />
+        </dl>
+      )
+
+    case 'agent':
+      return (
+        <dl className="entity-kind-details">
+          <DetailRow label={copy.labels.model} value={entity.declaredModel ?? '-'} />
+          <DetailRow
+            label={copy.labels.declaredTools}
+            value={entity.declaredTools.length > 0 ? entity.declaredTools.join(', ') : '-'}
+          />
+          <DetailRow label={copy.labels.file} value={entity.file} isPath />
+        </dl>
+      )
+
+    case 'plugin':
+      return (
+        <dl className="entity-kind-details">
+          <DetailRow label={copy.labels.version} value={entity.version ?? '-'} />
+          <DetailRow label={copy.labels.publisher} value={entity.publisher ?? '-'} />
+          <DetailRow label={copy.labels.manifest} value={entity.manifestPath ?? '-'} isPath />
+          <DetailRow label={copy.labels.kindSkill} value={entity.bundled.skills} />
+          <DetailRow label={copy.labels.commands} value={entity.bundled.commands} />
+          <DetailRow label={copy.labels.agents} value={entity.bundled.agents} />
+          <DetailRow label={copy.labels.mcpServers} value={entity.bundled.mcpServers} />
+          <DetailRow label={copy.labels.hooks} value={entity.bundled.hooks} />
+          <DetailRow label={copy.labels.cache} value={formatBoolean(entity.cache.isCache, copy)} />
+          <DetailRow label={copy.labels.backup} value={formatBoolean(entity.cache.isBackup, copy)} />
+          <DetailRow label={copy.labels.cacheFamily} value={entity.cache.cacheFamily ?? '-'} />
+        </dl>
+      )
+
+    case 'mcp-server':
+      return (
+        <dl className="entity-kind-details">
+          <DetailRow label={copy.labels.file} value={entity.configPath} isPath />
+          <DetailRow label={copy.labels.transport} value={entity.transport} />
+          <DetailRow label={copy.labels.command} value={entity.command ?? '-'} isPath />
+          <DetailRow label={copy.labels.args} value={entity.argsCount ?? 0} />
+          <DetailRow label={copy.labels.host} value={entity.urlHost ?? '-'} />
+          <DetailRow
+            label={copy.labels.probeAttempted}
+            value={formatBoolean(entity.probe?.attempted ?? false, copy)}
+          />
+          <DetailRow
+            label={copy.labels.reachable}
+            value={
+              entity.probe?.reachable === undefined
+                ? copy.labels.probeSkipped
+                : formatBoolean(entity.probe.reachable, copy)
+            }
+          />
+          <DetailRow label={copy.labels.tools} value={entity.probe?.toolsCount ?? 0} />
+          <DetailRow label={copy.labels.resources} value={entity.probe?.resourcesCount ?? 0} />
+          <DetailRow label={copy.labels.prompts} value={entity.probe?.promptsCount ?? 0} />
+          <DetailRow
+            label={copy.labels.latency}
+            value={entity.probe?.latencyMs ? `${entity.probe.latencyMs} ms` : '-'}
+          />
+          <DetailRow label={copy.labels.error} value={entity.probe?.error ?? '-'} />
+        </dl>
+      )
+
+    case 'instruction-file':
+      return (
+        <dl className="entity-kind-details">
+          <DetailRow label={copy.labels.file} value={entity.fileType} />
+          <DetailRow label={copy.labels.appliesTo} value={entity.appliesToPath} isPath />
+          <DetailRow label={copy.labels.lines} value={entity.lineCount} />
+        </dl>
+      )
+  }
+}
+
+function DetailRow({
+  label,
+  value,
+  isPath = false,
+}: {
+  label: string
+  value: string | number
+  isPath?: boolean
+}) {
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd className={isPath ? 'path-cell' : undefined}>{value}</dd>
+    </div>
+  )
+}
+
+function OptionalDetailRow({
+  label,
+  value,
+}: {
+  label: string
+  value?: string
+}) {
+  if (!value) {
+    return null
+  }
+
+  return <DetailRow label={label} value={value} />
+}
+
+function formatBoolean(value: boolean, copy: typeof appCopy['zh-CN']) {
+  return value ? copy.labels.yes : copy.labels.no
 }
 
 function IssueCard({

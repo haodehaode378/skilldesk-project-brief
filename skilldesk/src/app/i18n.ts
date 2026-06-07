@@ -66,6 +66,15 @@ type AppCopy = {
     transport: string
     command: string
     args: string
+    skillFile: string
+    scripts: string
+    references: string
+    assets: string
+    declaredVersion: string
+    commandType: string
+    namespace: string
+    model: string
+    declaredTools: string
     host: string
     tools: string
     version: string
@@ -84,6 +93,13 @@ type AppCopy = {
     probe: string
     probeAttempted: string
     probeSkipped: string
+    reachable: string
+    latency: string
+    error: string
+    file: string
+    hooks: string
+    mcpServers: string
+    cacheFamily: string
     roots: string
     scanned: string
     missing: string
@@ -216,6 +232,15 @@ export const appCopy: Record<Locale, AppCopy> = {
       transport: '传输',
       command: '命令',
       args: '参数',
+      skillFile: 'Skill 文件',
+      scripts: '脚本',
+      references: '参考资料',
+      assets: '资源文件',
+      declaredVersion: '声明版本',
+      commandType: '命令类型',
+      namespace: '命名空间',
+      model: '模型',
+      declaredTools: '声明工具',
       host: 'Host',
       tools: '工具',
       version: '版本',
@@ -234,6 +259,13 @@ export const appCopy: Record<Locale, AppCopy> = {
       probe: '探测',
       probeAttempted: '已记录',
       probeSkipped: '未主动探测',
+      reachable: '可连接',
+      latency: '延迟',
+      error: '错误',
+      file: '文件',
+      hooks: 'Hooks',
+      mcpServers: 'MCP 服务',
+      cacheFamily: '缓存族',
       roots: '扫描来源',
       scanned: '已扫描',
       missing: '缺失',
@@ -365,6 +397,15 @@ export const appCopy: Record<Locale, AppCopy> = {
       transport: 'Transport',
       command: 'Command',
       args: 'Args',
+      skillFile: 'Skill file',
+      scripts: 'Scripts',
+      references: 'References',
+      assets: 'Assets',
+      declaredVersion: 'Declared version',
+      commandType: 'Command type',
+      namespace: 'Namespace',
+      model: 'Model',
+      declaredTools: 'Declared tools',
       host: 'Host',
       tools: 'Tools',
       version: 'Version',
@@ -383,6 +424,13 @@ export const appCopy: Record<Locale, AppCopy> = {
       probe: 'Probe',
       probeAttempted: 'Recorded',
       probeSkipped: 'Not actively probed',
+      reachable: 'Reachable',
+      latency: 'Latency',
+      error: 'Error',
+      file: 'File',
+      hooks: 'Hooks',
+      mcpServers: 'MCP servers',
+      cacheFamily: 'Cache family',
       roots: 'Scan roots',
       scanned: 'Scanned',
       missing: 'Missing',
