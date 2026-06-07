@@ -15,6 +15,7 @@ type AppCopy = {
     eyebrow: string
     title: string
     scanButton: string
+    scanningButton: string
     languageButton: string
     summary: {
       totalExtensions: string
@@ -27,6 +28,9 @@ type AppCopy = {
     panelTitle: string
     panelBody: string
     phaseTag: string
+    localPanelTitle: string
+    localPanelBody: string
+    localPhaseTag: string
   }
   labels: {
     name: string
@@ -77,6 +81,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       eyebrow: '只读 MVP 预览',
       title: 'Agent 扩展生态体检台',
       scanButton: '扫描本地来源',
+      scanningButton: '正在扫描',
       languageButton: 'English',
       summary: {
         totalExtensions: '扩展总数',
@@ -90,6 +95,10 @@ export const appCopy: Record<Locale, AppCopy> = {
       panelBody:
         '当前界面已接入安全 fixture。下一步会把这些视图继续细化，再连接只读 scanner core。',
       phaseTag: '阶段 3：fixture UI',
+      localPanelTitle: '正在使用本机只读扫描数据',
+      localPanelBody:
+        '扫描器已读取默认 Skill 来源，只收集路径、数量、修改时间和基础元数据，不执行脚本或插件命令。',
+      localPhaseTag: '阶段 4：本机扫描',
     },
     labels: {
       name: '名称',
@@ -138,6 +147,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       eyebrow: 'Read-only MVP preview',
       title: 'Agent extension health dashboard',
       scanButton: 'Scan local roots',
+      scanningButton: 'Scanning',
       languageButton: '中文',
       summary: {
         totalExtensions: 'Total extensions',
@@ -151,6 +161,10 @@ export const appCopy: Record<Locale, AppCopy> = {
       panelBody:
         'This shell is now wired to safe fixture data. Next, the views will be refined before connecting the read-only scanner core.',
       phaseTag: 'Phase 3: fixture UI',
+      localPanelTitle: 'Using local read-only scan data',
+      localPanelBody:
+        'The scanner reads default skill sources and collects paths, counts, mtimes, and basic metadata without executing scripts or plugin commands.',
+      localPhaseTag: 'Phase 4: local scan',
     },
     labels: {
       name: 'Name',

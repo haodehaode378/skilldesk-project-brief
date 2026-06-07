@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { invoke } from '@tauri-apps/api/core'
 
 import { appCopy, nextLocale } from './app/i18n'
 import './App.css'
 import { fixtureScanReport } from './fixtures'
-import type { EntityKind, HealthStatus, Locale, ManagedEntity } from './model'
+import { scanReportSchema } from './model'
+import type { EntityKind, HealthStatus, Locale, ManagedEntity, ScanReport } from './model'
 
 type ViewKey =
   | 'overview'
@@ -52,15 +54,35 @@ function formatKind(kind: EntityKind) {
 function App() {
   const [locale, setLocale] = useState<Locale>('zh-CN')
   const [activeView, setActiveView] = useState<ViewKey>('overview')
+  const [report, setReport] = useState<ScanReport>(fixtureScanReport)
+  const [scanState, setScanState] = useState<'fixture' | 'scanning' | 'local' | 'error'>(
+    'fixture',
+  )
+  const [scanError, setScanError] = useState('')
   const [selectedEntityId, setSelectedEntityId] = useState(
     fixtureScanReport.entities[0]?.id ?? '',
   )
   const copy = appCopy[locale]
-  const report = fixtureScanReport
   const totals = report.totals
   const selectedEntity =
     report.entities.find((entity) => entity.id === selectedEntityId) ??
     report.entities[0]
+
+  async function scanLocalRoots() {
+    setScanState('scanning')
+    setScanError('')
+
+    try {
+      const result = await invoke('scan_local_extensions')
+      const parsedReport = scanReportSchema.parse(result)
+      setReport(parsedReport)
+      setSelectedEntityId(parsedReport.entities[0]?.id ?? '')
+      setScanState('local')
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : String(error))
+      setScanState('error')
+    }
+  }
 
   return (
     <main className="app-shell">
@@ -103,12 +125,26 @@ function App() {
             >
               {copy.dashboard.languageButton}
             </button>
-            <button type="button">{copy.dashboard.scanButton}</button>
+            <button
+              type="button"
+              disabled={scanState === 'scanning'}
+              onClick={scanLocalRoots}
+            >
+              {scanState === 'scanning'
+                ? copy.dashboard.scanningButton
+                : copy.dashboard.scanButton}
+            </button>
           </div>
         </header>
 
         {activeView === 'overview' && (
-          <OverviewView copy={copy} report={report} totals={totals} />
+          <OverviewView
+            copy={copy}
+            report={report}
+            totals={totals}
+            scanState={scanState}
+            scanError={scanError}
+          />
         )}
         {activeView === 'extensions' && (
           <ExtensionsView
@@ -138,10 +174,14 @@ function OverviewView({
   copy,
   report,
   totals,
+  scanState,
+  scanError,
 }: {
   copy: typeof appCopy['zh-CN']
-  report: typeof fixtureScanReport
-  totals: typeof fixtureScanReport.totals
+  report: ScanReport
+  totals: ScanReport['totals']
+  scanState: 'fixture' | 'scanning' | 'local' | 'error'
+  scanError: string
 }) {
   return (
     <>
@@ -156,10 +196,23 @@ function OverviewView({
 
       <section className="panel">
         <div>
-          <h3>{copy.dashboard.panelTitle}</h3>
-          <p>{copy.dashboard.panelBody}</p>
+          <h3>
+            {scanState === 'local'
+              ? copy.dashboard.localPanelTitle
+              : copy.dashboard.panelTitle}
+          </h3>
+          <p>
+            {scanState === 'local'
+              ? copy.dashboard.localPanelBody
+              : copy.dashboard.panelBody}
+          </p>
+          {scanState === 'error' && <p className="error-text">{scanError}</p>}
         </div>
-        <code>{copy.dashboard.phaseTag}</code>
+        <code>
+          {scanState === 'local'
+            ? copy.dashboard.localPhaseTag
+            : copy.dashboard.phaseTag}
+        </code>
       </section>
 
       <section className="split-grid">
@@ -289,7 +342,7 @@ function SourcesView({
   report,
 }: {
   copy: typeof appCopy['zh-CN']
-  report: typeof fixtureScanReport
+  report: ScanReport
 }) {
   return (
     <section className="table-panel">
@@ -323,7 +376,7 @@ function IssuesView({
   report,
 }: {
   copy: typeof appCopy['zh-CN']
-  report: typeof fixtureScanReport
+  report: ScanReport
 }) {
   return (
     <section className="table-panel">
@@ -400,7 +453,7 @@ function IssuesPreview({
   report,
 }: {
   copy: typeof appCopy['zh-CN']
-  report: typeof fixtureScanReport
+  report: ScanReport
 }) {
   return (
     <section className="table-panel">

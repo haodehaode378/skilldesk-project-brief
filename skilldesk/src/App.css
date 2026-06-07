@@ -156,6 +156,12 @@ button:focus-visible {
   max-width: 62ch;
 }
 
+.panel .error-text {
+  color: #b42318;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
 .split-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
