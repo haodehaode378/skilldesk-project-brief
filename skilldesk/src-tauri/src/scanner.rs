@@ -88,6 +88,7 @@ pub fn scan_local_extensions() -> Value {
         scan_instruction_files(&current_dir, &now, &mut roots, &mut entities, &mut issues);
     }
 
+    let issues = aggregate_report_issues(&entities, issues);
     let totals = calculate_totals(&entities);
     let mut machine = Map::new();
     machine.insert("platform".to_string(), json!(platform_name()));

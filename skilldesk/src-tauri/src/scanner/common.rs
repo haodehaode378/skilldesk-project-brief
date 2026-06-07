@@ -65,6 +65,23 @@ pub(crate) fn calculate_totals(entities: &[Value]) -> Value {
     })
 }
 
+pub(crate) fn aggregate_report_issues(
+    entities: &[Value],
+    mut report_issues: Vec<Value>,
+) -> Vec<Value> {
+    for entity in entities {
+        if let Some(issues) = entity
+            .get("health")
+            .and_then(|health| health.get("issues"))
+            .and_then(Value::as_array)
+        {
+            report_issues.extend(issues.iter().cloned());
+        }
+    }
+
+    report_issues
+}
+
 pub(crate) fn manifest_count(manifest: &Value, key: &str) -> Option<usize> {
     let value = manifest.get(key)?;
     if let Some(items) = value.as_array() {
@@ -333,4 +350,35 @@ pub(crate) fn stable_path_id(path: &Path) -> String {
 
 pub(crate) fn issue_id(prefix: &str, path: &Path) -> String {
     format!("{}:{}", prefix, stable_path_id(path))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn aggregates_entity_health_issues() {
+        let entity = json!({
+          "health": {
+            "issues": [
+              {
+                "id": "weak-description",
+                "severity": "low",
+                "category": "metadata",
+                "message": "Description is weak."
+              }
+            ]
+          }
+        });
+        let root_issue = json!({
+          "id": "root",
+          "severity": "low",
+          "category": "path",
+          "message": "Root warning."
+        });
+
+        let issues = aggregate_report_issues(&[entity], vec![root_issue]);
+
+        assert_eq!(issues.len(), 2);
+    }
 }
