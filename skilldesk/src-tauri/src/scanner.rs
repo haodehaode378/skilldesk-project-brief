@@ -1,7 +1,9 @@
 mod common;
+mod git;
 mod health;
 
 use common::*;
+use git::*;
 use health::*;
 use serde_json::{json, Map, Value};
 use std::{
@@ -853,6 +855,7 @@ fn build_skill_entity(root: &Path, skill_md: &Path, platform: &str, discovered_a
         entity.insert("fingerprint".to_string(), json!(value));
     }
     entity.insert("health".to_string(), health);
+    attach_git_state(&mut entity, skill_dir);
     entity.insert(
         "files".to_string(),
         json!({
@@ -936,5 +939,6 @@ fn base_entity(
         entity.insert("fingerprint".to_string(), json!(value));
     }
     entity.insert("health".to_string(), health);
+    attach_git_state(&mut entity, path);
     entity
 }
