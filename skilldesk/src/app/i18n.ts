@@ -38,6 +38,12 @@ type AppCopy = {
   labels: {
     name: string
     kind: string
+    kindSkill: string
+    kindCommand: string
+    kindAgent: string
+    kindPlugin: string
+    kindMcpServer: string
+    kindInstructionFile: string
     platform: string
     source: string
     status: string
@@ -62,6 +68,7 @@ type AppCopy = {
     statusAtRisk: string
     statusBroken: string
     allStatuses: string
+    allKinds: string
     severityInfo: string
     severityLow: string
     severityMedium: string
@@ -140,6 +147,12 @@ export const appCopy: Record<Locale, AppCopy> = {
     labels: {
       name: '名称',
       kind: '类型',
+      kindSkill: 'Skill',
+      kindCommand: '命令',
+      kindAgent: 'Agent',
+      kindPlugin: '插件',
+      kindMcpServer: 'MCP 服务',
+      kindInstructionFile: '项目指令',
       platform: '平台',
       source: '来源',
       status: '状态',
@@ -164,6 +177,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       statusAtRisk: '有风险',
       statusBroken: '已损坏',
       allStatuses: '全部状态',
+      allKinds: '全部类型',
       severityInfo: '提示',
       severityLow: '低',
       severityMedium: '中',
@@ -241,6 +255,12 @@ export const appCopy: Record<Locale, AppCopy> = {
     labels: {
       name: 'Name',
       kind: 'Kind',
+      kindSkill: 'Skill',
+      kindCommand: 'Command',
+      kindAgent: 'Agent',
+      kindPlugin: 'Plugin',
+      kindMcpServer: 'MCP server',
+      kindInstructionFile: 'Instruction file',
       platform: 'Platform',
       source: 'Source',
       status: 'Status',
@@ -265,6 +285,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       statusAtRisk: 'At risk',
       statusBroken: 'Broken',
       allStatuses: 'All statuses',
+      allKinds: 'All kinds',
       severityInfo: 'Info',
       severityLow: 'Low',
       severityMedium: 'Medium',

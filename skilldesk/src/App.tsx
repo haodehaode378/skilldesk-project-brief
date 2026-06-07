@@ -42,6 +42,7 @@ const viewOrder: ViewKey[] = [
 ]
 
 type StatusFilter = HealthStatus | 'all'
+type EntityKindFilter = EntityKind | 'all'
 type IssueSeverityFilter = IssueSeverity | 'all'
 
 const statusFilters: StatusFilter[] = [
@@ -50,6 +51,16 @@ const statusFilters: StatusFilter[] = [
   'needs-review',
   'at-risk',
   'broken',
+]
+
+const entityKindFilters: EntityKindFilter[] = [
+  'all',
+  'skill',
+  'command',
+  'agent',
+  'plugin',
+  'mcp-server',
+  'instruction-file',
 ]
 
 const issueSeverityFilters: IssueSeverityFilter[] = [
@@ -92,8 +103,17 @@ function formatSeverity(severity: IssueSeverity, copy: typeof appCopy['zh-CN']) 
   return labels[severity]
 }
 
-function formatKind(kind: EntityKind) {
-  return kind.replace('-', ' ')
+function formatKind(kind: EntityKind, copy: typeof appCopy['zh-CN']) {
+  const labels: Record<EntityKind, string> = {
+    skill: copy.labels.kindSkill,
+    command: copy.labels.kindCommand,
+    agent: copy.labels.kindAgent,
+    plugin: copy.labels.kindPlugin,
+    'mcp-server': copy.labels.kindMcpServer,
+    'instruction-file': copy.labels.kindInstructionFile,
+  }
+
+  return labels[kind]
 }
 
 function App() {
@@ -109,6 +129,8 @@ function App() {
   const [scanError, setScanError] = useState('')
   const [exportMessage, setExportMessage] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [entityKindFilter, setEntityKindFilter] =
+    useState<EntityKindFilter>('all')
   const [extensionQuery, setExtensionQuery] = useState('')
   const [issueSeverityFilter, setIssueSeverityFilter] =
     useState<IssueSeverityFilter>('all')
@@ -235,6 +257,8 @@ function App() {
             entities={report.entities}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            kindFilter={entityKindFilter}
+            onKindFilterChange={setEntityKindFilter}
             query={extensionQuery}
             onQueryChange={setExtensionQuery}
             selectedEntityId={selectedEntity?.id}
@@ -337,6 +361,8 @@ function ExtensionsView({
   entities,
   statusFilter,
   onStatusFilterChange,
+  kindFilter,
+  onKindFilterChange,
   query,
   onQueryChange,
   selectedEntityId,
@@ -346,6 +372,8 @@ function ExtensionsView({
   entities: ManagedEntity[]
   statusFilter: StatusFilter
   onStatusFilterChange: (status: StatusFilter) => void
+  kindFilter: EntityKindFilter
+  onKindFilterChange: (kind: EntityKindFilter) => void
   query: string
   onQueryChange: (query: string) => void
   selectedEntityId?: string
@@ -355,6 +383,7 @@ function ExtensionsView({
   const filteredEntities = entities.filter((entity) => {
     const matchesStatus =
       statusFilter === 'all' || entity.health.status === statusFilter
+    const matchesKind = kindFilter === 'all' || entity.kind === kindFilter
     const searchable = [
       entity.name,
       entity.title,
@@ -369,7 +398,7 @@ function ExtensionsView({
     const matchesQuery =
       normalizedQuery.length === 0 || searchable.includes(normalizedQuery)
 
-    return matchesStatus && matchesQuery
+    return matchesStatus && matchesKind && matchesQuery
   })
   const selectedEntity =
     filteredEntities.find((entity) => entity.id === selectedEntityId) ??
@@ -398,6 +427,11 @@ function ExtensionsView({
           copy={copy}
           activeStatus={statusFilter}
           onChange={onStatusFilterChange}
+        />
+        <EntityKindFilterBar
+          copy={copy}
+          activeKind={kindFilter}
+          onChange={onKindFilterChange}
         />
         {filteredEntities.length > 0 ? (
           <EntityTable
@@ -737,7 +771,7 @@ function EntityTable({
             onClick={() => onSelect?.(entity.id)}
           >
             <td>{entity.title ?? entity.name}</td>
-            <td>{formatKind(entity.kind)}</td>
+            <td>{formatKind(entity.kind, copy)}</td>
             <td>{entity.platform}</td>
             <td>
               <StatusBadge copy={copy} status={entity.health.status} />
@@ -765,7 +799,7 @@ function DetailPanel({
       <dl>
         <div>
           <dt>{copy.labels.kind}</dt>
-          <dd>{formatKind(entity.kind)}</dd>
+          <dd>{formatKind(entity.kind, copy)}</dd>
         </div>
         <div>
           <dt>{copy.labels.platform}</dt>
@@ -896,6 +930,32 @@ function StatusFilterBar({
           onClick={() => onChange(status)}
         >
           {status === 'all' ? copy.labels.allStatuses : formatStatus(status, copy)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function EntityKindFilterBar({
+  copy,
+  activeKind,
+  onChange,
+}: {
+  copy: typeof appCopy['zh-CN']
+  activeKind: EntityKindFilter
+  onChange: (kind: EntityKindFilter) => void
+}) {
+  return (
+    <div className="filter-bar" aria-label={copy.labels.kind}>
+      {entityKindFilters.map((kind) => (
+        <button
+          key={kind}
+          type="button"
+          className="filter-button"
+          aria-pressed={activeKind === kind}
+          onClick={() => onChange(kind)}
+        >
+          {kind === 'all' ? copy.labels.allKinds : formatKind(kind, copy)}
         </button>
       ))}
     </div>
