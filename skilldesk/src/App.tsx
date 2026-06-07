@@ -166,6 +166,10 @@ function App() {
   const [issueSeverityFilter, setIssueSeverityFilter] =
     useState<IssueSeverityFilter>('all')
   const [issueQuery, setIssueQuery] = useState('')
+  const [settings, setSettings] = useState<AppSettings>(() => ({
+    ...defaultAppSettings,
+    locale,
+  }))
   const [selectedEntityId, setSelectedEntityId] = useState(
     (initialCachedReport ?? fixtureScanReport).entities[0]?.id ?? '',
   )
@@ -180,7 +184,12 @@ function App() {
     setScanError('')
 
     try {
-      const result = await invoke('scan_local_extensions')
+      const result = await invoke('scan_local_extensions', {
+        options: {
+          includePluginCaches: settings.includePluginCaches,
+          mcpProbePolicy: settings.mcpProbePolicy,
+        },
+      })
       const parsedReport = scanReportSchema.parse(result)
       setReport(parsedReport)
       saveCachedReport(parsedReport)
@@ -201,7 +210,10 @@ function App() {
         exportedAt: new Date().toISOString(),
         report: parsedReport,
         reportSource: scanState,
-        settings: defaultAppSettings,
+        settings: {
+          ...settings,
+          locale,
+        },
       })
       const exportPath = await invoke<string>('export_scan_report', {
         report: exportPayload,
@@ -318,7 +330,9 @@ function App() {
         {activeView === 'plugins' && (
           <PluginsView copy={copy} entities={report.entities} />
         )}
-        {activeView === 'sources' && <SourcesView copy={copy} report={report} />}
+        {activeView === 'sources' && (
+          <SourcesView copy={copy} report={report} settings={settings} />
+        )}
         {activeView === 'issues' && (
           <IssuesView
             copy={copy}
@@ -333,7 +347,10 @@ function App() {
           <SettingsView
             copy={copy}
             locale={locale}
-            settings={defaultAppSettings}
+            settings={settings}
+            onIncludePluginCachesChange={(includePluginCaches) =>
+              setSettings((current) => ({ ...current, includePluginCaches }))
+            }
             onClearCache={clearReportCache}
           />
         )}
@@ -682,9 +699,11 @@ function PluginsView({
 function SourcesView({
   copy,
   report,
+  settings,
 }: {
   copy: typeof appCopy['zh-CN']
   report: ScanReport
+  settings: AppSettings
 }) {
   const instructionFiles = report.entities.filter(
     (entity) => entity.kind === 'instruction-file',
@@ -707,7 +726,11 @@ function SourcesView({
         <CapabilityItem label={copy.views.readOnlyScanning} value={copy.labels.enabled} />
         <CapabilityItem
           label={copy.views.pluginCacheMode}
-          value={copy.views.pluginCacheSummaryOnly}
+          value={
+            settings.includePluginCaches
+              ? copy.labels.enabled
+              : copy.views.pluginCacheSummaryOnly
+          }
         />
         <CapabilityItem
           label={copy.views.mcpProbePolicy}
@@ -874,11 +897,13 @@ function SettingsView({
   copy,
   locale,
   settings,
+  onIncludePluginCachesChange,
   onClearCache,
 }: {
   copy: typeof appCopy['zh-CN']
   locale: Locale
   settings: AppSettings
+  onIncludePluginCachesChange: (includePluginCaches: boolean) => void
   onClearCache: () => void
 }) {
   return (
@@ -892,9 +917,20 @@ function SettingsView({
         <div>
           <dt>{copy.views.pluginCacheMode}</dt>
           <dd>
-            {settings.includePluginCaches
-              ? copy.labels.enabled
-              : copy.views.pluginCacheSummaryOnly}
+            <label className="toggle-field">
+              <input
+                type="checkbox"
+                checked={settings.includePluginCaches}
+                onChange={(event) =>
+                  onIncludePluginCachesChange(event.currentTarget.checked)
+                }
+              />
+              <span>
+                {settings.includePluginCaches
+                  ? copy.labels.enabled
+                  : copy.views.pluginCacheSummaryOnly}
+              </span>
+            </label>
           </dd>
         </div>
         <div>

@@ -5,6 +5,7 @@ mod health;
 use common::*;
 use git::*;
 use health::*;
+use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use std::{
     collections::HashSet,
@@ -16,8 +17,17 @@ const SCHEMA_VERSION: &str = "0.1";
 const MAX_SKILL_SCAN_DEPTH: usize = 8;
 const MAX_MARKDOWN_SCAN_DEPTH: usize = 8;
 
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanOptions {
+    include_plugin_caches: bool,
+    mcp_probe_policy: Option<String>,
+}
+
 #[tauri::command]
-pub fn scan_local_extensions() -> Value {
+pub fn scan_local_extensions(options: Option<ScanOptions>) -> Value {
+    let options = options.unwrap_or_default();
+    let _mcp_probe_policy = options.mcp_probe_policy.as_deref().unwrap_or("disabled");
     let now = iso_now();
     let home_dir = env::var("USERPROFILE")
         .or_else(|_| env::var("HOME"))
@@ -49,6 +59,7 @@ pub fn scan_local_extensions() -> Value {
         scan_plugin_root(
             &home.join(".codex").join("plugins"),
             &now,
+            options.include_plugin_caches,
             &mut roots,
             &mut entities,
             &mut issues,
@@ -113,6 +124,7 @@ pub fn scan_local_extensions() -> Value {
 fn scan_plugin_root(
     root: &Path,
     discovered_at: &str,
+    include_plugin_caches: bool,
     roots: &mut Vec<Value>,
     entities: &mut Vec<Value>,
     report_issues: &mut Vec<Value>,
@@ -134,7 +146,13 @@ fn scan_plugin_root(
 
     roots.push(root_result(root, "directory", "scanned", None));
     let mut manifests = Vec::new();
-    collect_plugin_manifests(root, 0, &mut manifests, report_issues);
+    collect_plugin_manifests(
+        root,
+        0,
+        include_plugin_caches,
+        &mut manifests,
+        report_issues,
+    );
 
     for manifest in manifests {
         if let Some(entity) = build_plugin_entity(root, &manifest, discovered_at, report_issues) {
@@ -146,6 +164,7 @@ fn scan_plugin_root(
 fn collect_plugin_manifests(
     dir: &Path,
     depth: usize,
+    include_plugin_caches: bool,
     manifests: &mut Vec<PathBuf>,
     report_issues: &mut Vec<Value>,
 ) {
@@ -173,9 +192,22 @@ fn collect_plugin_manifests(
         if path.file_name().is_some_and(|name| name == "plugin.json") {
             manifests.push(path);
         } else if path.is_dir() && !should_skip_path(&path) {
-            collect_plugin_manifests(&path, depth + 1, manifests, report_issues);
+            if !include_plugin_caches && is_plugin_cache_path(&path) {
+                continue;
+            }
+            collect_plugin_manifests(
+                &path,
+                depth + 1,
+                include_plugin_caches,
+                manifests,
+                report_issues,
+            );
         }
     }
+}
+
+fn is_plugin_cache_path(path: &Path) -> bool {
+    path_contains(path, "cache") || path_contains(path, "backups") || path_contains(path, "backup")
 }
 
 fn scan_instruction_files(
@@ -867,6 +899,76 @@ fn build_skill_entity(root: &Path, skill_md: &Path, platform: &str, discovered_a
     );
 
     Value::Object(entity)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{
+        fs,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    #[test]
+    fn plugin_cache_scan_is_controlled_by_options() {
+        let root = unique_test_dir("plugin-cache-scan");
+        let local_plugin = root.join("local-plugin");
+        let cached_plugin = root.join("cache").join("cached-plugin");
+        fs::create_dir_all(&local_plugin).expect("create local plugin dir");
+        fs::create_dir_all(&cached_plugin).expect("create cached plugin dir");
+        fs::write(
+            local_plugin.join("plugin.json"),
+            r#"{"name":"local-plugin","description":"Local plugin."}"#,
+        )
+        .expect("write local plugin manifest");
+        fs::write(
+            cached_plugin.join("plugin.json"),
+            r#"{"name":"cached-plugin","description":"Cached plugin."}"#,
+        )
+        .expect("write cached plugin manifest");
+
+        let mut roots = Vec::new();
+        let mut entities = Vec::new();
+        let mut issues = Vec::new();
+        scan_plugin_root(
+            &root,
+            "2026-06-07T00:00:00Z",
+            false,
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
+        assert_eq!(entities.len(), 1);
+        assert_eq!(entities[0]["name"], "local-plugin");
+
+        roots.clear();
+        entities.clear();
+        issues.clear();
+        scan_plugin_root(
+            &root,
+            "2026-06-07T00:00:00Z",
+            true,
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
+        let names: Vec<_> = entities
+            .iter()
+            .filter_map(|entity| entity["name"].as_str())
+            .collect();
+        assert!(names.contains(&"local-plugin"));
+        assert!(names.contains(&"cached-plugin"));
+
+        fs::remove_dir_all(root).expect("remove plugin scan test dir");
+    }
+
+    fn unique_test_dir(name: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time after unix epoch")
+            .as_nanos();
+        env::temp_dir().join(format!("skilldesk-{name}-{}-{nanos}", std::process::id()))
+    }
 }
 
 fn parse_skill_text(content: &str) -> (Option<String>, Option<String>) {
