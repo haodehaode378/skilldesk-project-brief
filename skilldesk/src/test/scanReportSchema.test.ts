@@ -200,4 +200,62 @@ describe('scanReportSchema', () => {
 
     expect(report.totals.instructionFiles).toBe(1)
   })
+
+  it('accepts local scanner shaped MCP server entities', () => {
+    const report = scanReportSchema.parse({
+      schemaVersion: '0.1',
+      generatedAt: '2026-06-07T10:30:00Z',
+      machine: {
+        platform: 'win32',
+      },
+      roots: [
+        {
+          path: 'E:\\project\\.mcp.json',
+          kind: 'file',
+          status: 'scanned',
+        },
+      ],
+      entities: [
+        {
+          id: 'mcp-server:unknown:e--project--mcp-json',
+          kind: 'mcp-server',
+          platform: 'unknown',
+          name: 'openpencil',
+          path: 'E:\\project\\.mcp.json',
+          source: 'local',
+          tags: [],
+          discoveredAt: '2026-06-07T10:30:00Z',
+          health: {
+            status: 'needs-review',
+            issues: [],
+          },
+          configPath: 'E:\\project\\.mcp.json',
+          transport: 'stdio',
+          command: 'openpencil-mcp',
+          argsCount: 2,
+          probe: {
+            attempted: false,
+          },
+        },
+      ],
+      totals: {
+        entities: 1,
+        skills: 0,
+        commands: 0,
+        agents: 0,
+        plugins: 0,
+        mcpServers: 1,
+        instructionFiles: 0,
+        byStatus: {
+          ok: 0,
+          'needs-review': 1,
+          'at-risk': 0,
+          broken: 0,
+        },
+      },
+      issues: [],
+    })
+
+    expect(report.totals.mcpServers).toBe(1)
+  })
 })

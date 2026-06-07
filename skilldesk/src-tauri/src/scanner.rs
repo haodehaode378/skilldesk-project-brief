@@ -57,12 +57,18 @@ pub fn scan_local_extensions() -> Value {
             &mut entities,
             &mut issues,
         );
-        register_directory_root(&home.join(".claude").join("mcp-configs"), &mut roots);
-        scan_instruction_files(home, &now, &mut roots, &mut entities);
+        scan_mcp_json_root(
+            &home.join(".claude").join("mcp-configs"),
+            &now,
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
+        scan_instruction_files(home, &now, &mut roots, &mut entities, &mut issues);
     }
 
     if let Ok(current_dir) = env::current_dir() {
-        scan_instruction_files(&current_dir, &now, &mut roots, &mut entities);
+        scan_instruction_files(&current_dir, &now, &mut roots, &mut entities, &mut issues);
     }
 
     let totals = calculate_totals(&entities);
@@ -88,6 +94,7 @@ fn scan_instruction_files(
     discovered_at: &str,
     roots: &mut Vec<Value>,
     entities: &mut Vec<Value>,
+    report_issues: &mut Vec<Value>,
 ) {
     let mut seen = HashSet::new();
     for dir in instruction_candidate_dirs(start) {
@@ -101,6 +108,9 @@ fn scan_instruction_files(
             if file.exists() && file.is_file() {
                 roots.push(root_result(&file, "file", "scanned", None));
                 entities.push(build_instruction_entity(&file, discovered_at));
+                if file_name == ".mcp.json" {
+                    scan_mcp_json_file(&file, discovered_at, entities, report_issues);
+                }
             }
         }
     }
@@ -187,9 +197,120 @@ fn collect_markdown_files(
         let path = entry.path();
         if path.is_dir() && !should_skip_path(&path) {
             collect_markdown_files(&path, depth + 1, markdown_files, report_issues);
-        } else if path.extension().is_some_and(|extension| extension == "md") {
+        } else if has_extension(&path, "md") {
             markdown_files.push(path);
         }
+    }
+}
+
+fn scan_mcp_json_root(
+    root: &Path,
+    discovered_at: &str,
+    roots: &mut Vec<Value>,
+    entities: &mut Vec<Value>,
+    report_issues: &mut Vec<Value>,
+) {
+    if !root.exists() {
+        roots.push(root_result(root, "directory", "missing", None));
+        return;
+    }
+
+    if !root.is_dir() {
+        roots.push(root_result(
+            root,
+            "directory",
+            "error",
+            Some("Configured MCP root is not a directory."),
+        ));
+        return;
+    }
+
+    roots.push(root_result(root, "directory", "scanned", None));
+    let mut json_files = Vec::new();
+    collect_json_files(root, 0, &mut json_files, report_issues);
+
+    for file in json_files {
+        scan_mcp_json_file(&file, discovered_at, entities, report_issues);
+    }
+}
+
+fn collect_json_files(
+    dir: &Path,
+    depth: usize,
+    json_files: &mut Vec<PathBuf>,
+    report_issues: &mut Vec<Value>,
+) {
+    if depth > MAX_MARKDOWN_SCAN_DEPTH || should_skip_path(dir) {
+        return;
+    }
+
+    let entries = match fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(error) => {
+            report_issues.push(json!({
+              "id": issue_id("path", dir),
+              "severity": "low",
+              "category": "path",
+              "message": "SkillDesk could not read a configured directory.",
+              "file": dir.to_string_lossy(),
+              "evidence": error.to_string(),
+            }));
+            return;
+        }
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() && !should_skip_path(&path) {
+            collect_json_files(&path, depth + 1, json_files, report_issues);
+        } else if has_extension(&path, "json") {
+            json_files.push(path);
+        }
+    }
+}
+
+fn scan_mcp_json_file(
+    file: &Path,
+    discovered_at: &str,
+    entities: &mut Vec<Value>,
+    report_issues: &mut Vec<Value>,
+) {
+    let content = match fs::read_to_string(file) {
+        Ok(content) => content,
+        Err(error) => {
+            report_issues.push(json!({
+              "id": issue_id("mcp-read", file),
+              "severity": "low",
+              "category": "mcp",
+              "message": "SkillDesk could not read an MCP config file.",
+              "file": file.to_string_lossy(),
+              "evidence": error.to_string(),
+            }));
+            return;
+        }
+    };
+
+    let parsed: Value = match serde_json::from_str(&content) {
+        Ok(parsed) => parsed,
+        Err(error) => {
+            report_issues.push(json!({
+              "id": issue_id("mcp-json", file),
+              "severity": "medium",
+              "category": "mcp",
+              "message": "MCP config JSON could not be parsed.",
+              "file": file.to_string_lossy(),
+              "evidence": error.to_string(),
+            }));
+            return;
+        }
+    };
+
+    let Some(servers) = parsed.get("mcpServers").and_then(Value::as_object) else {
+        return;
+    };
+
+    for (name, config) in servers {
+        entities.push(build_mcp_server_entity(name, config, file, discovered_at));
     }
 }
 
@@ -345,6 +466,53 @@ fn build_instruction_entity(file: &Path, discovered_at: &str) -> Value {
     entity.insert("fileType".to_string(), json!(instruction_file_type(&name)));
     entity.insert("appliesToPath".to_string(), json!(applies_to_path));
     entity.insert("lineCount".to_string(), json!(content.lines().count()));
+    Value::Object(entity)
+}
+
+fn build_mcp_server_entity(
+    name: &str,
+    config: &Value,
+    config_path: &Path,
+    discovered_at: &str,
+) -> Value {
+    let command = config
+        .get("command")
+        .and_then(Value::as_str)
+        .map(ToString::to_string);
+    let url = config.get("url").and_then(Value::as_str);
+    let transport = mcp_transport(config, command.as_deref(), url);
+    let health = mcp_health(name, config_path, command.as_deref(), url);
+    let mut entity = base_entity(
+        "mcp-server",
+        "unknown",
+        name,
+        config_path.parent().unwrap_or(config_path),
+        config_path,
+        discovered_at,
+        None,
+        None,
+        health,
+    );
+    entity.insert(
+        "configPath".to_string(),
+        json!(config_path.to_string_lossy()),
+    );
+    entity.insert("transport".to_string(), json!(transport));
+    entity.insert(
+        "probe".to_string(),
+        json!({
+          "attempted": false,
+        }),
+    );
+    if let Some(value) = command {
+        entity.insert("command".to_string(), json!(value));
+    }
+    if let Some(args_count) = config.get("args").and_then(Value::as_array).map(Vec::len) {
+        entity.insert("argsCount".to_string(), json!(args_count));
+    }
+    if let Some(host) = url.and_then(url_host) {
+        entity.insert("urlHost".to_string(), json!(host));
+    }
     Value::Object(entity)
 }
 
@@ -585,12 +753,30 @@ fn markdown_health(
     })
 }
 
-fn register_directory_root(path: &Path, roots: &mut Vec<Value>) {
-    if path.exists() && path.is_dir() {
-        roots.push(root_result(path, "directory", "scanned", None));
-    } else {
-        roots.push(root_result(path, "directory", "missing", None));
+fn mcp_health(name: &str, config_path: &Path, command: Option<&str>, url: Option<&str>) -> Value {
+    let mut issues = Vec::new();
+
+    if command.is_none() && url.is_none() {
+        issues.push(json!({
+          "id": issue_id("mcp-missing-launch", config_path),
+          "severity": "medium",
+          "category": "mcp",
+          "message": format!("MCP server '{}' has neither command nor url.", name),
+          "file": config_path.to_string_lossy(),
+          "recommendation": "Define a stdio command or an HTTP/SSE URL in the MCP config.",
+        }));
     }
+
+    let status = if issues.is_empty() {
+        "needs-review"
+    } else {
+        "broken"
+    };
+
+    json!({
+      "status": status,
+      "issues": issues,
+    })
 }
 
 fn register_file_root(path: &Path, roots: &mut Vec<Value>) {
@@ -620,6 +806,7 @@ fn calculate_totals(entities: &[Value]) -> Value {
     let mut skills = 0;
     let mut commands = 0;
     let mut agents = 0;
+    let mut mcp_servers = 0;
     let mut instruction_files = 0;
 
     for entity in entities {
@@ -627,6 +814,7 @@ fn calculate_totals(entities: &[Value]) -> Value {
             Some("skill") => skills += 1,
             Some("command") => commands += 1,
             Some("agent") => agents += 1,
+            Some("mcp-server") => mcp_servers += 1,
             Some("instruction-file") => instruction_files += 1,
             _ => {}
         }
@@ -650,7 +838,7 @@ fn calculate_totals(entities: &[Value]) -> Value {
       "commands": commands,
       "agents": agents,
       "plugins": 0,
-      "mcpServers": 0,
+      "mcpServers": mcp_servers,
       "instructionFiles": instruction_files,
       "byStatus": {
         "ok": ok,
@@ -661,6 +849,35 @@ fn calculate_totals(entities: &[Value]) -> Value {
     })
 }
 
+fn mcp_transport(config: &Value, command: Option<&str>, url: Option<&str>) -> &'static str {
+    if let Some(transport) = config.get("transport").and_then(Value::as_str) {
+        return match transport {
+            "stdio" => "stdio",
+            "sse" => "sse",
+            "streamable-http" => "streamable-http",
+            "http" => "http",
+            _ => "unknown",
+        };
+    }
+
+    if command.is_some() {
+        "stdio"
+    } else if url.is_some() {
+        "http"
+    } else {
+        "unknown"
+    }
+}
+
+fn url_host(url: &str) -> Option<String> {
+    let without_scheme = url.split_once("://").map(|(_, rest)| rest).unwrap_or(url);
+    without_scheme
+        .split('/')
+        .next()
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+}
+
 fn instruction_file_type(name: &str) -> &str {
     match name {
         "AGENTS.md" => "AGENTS.md",
@@ -668,6 +885,12 @@ fn instruction_file_type(name: &str) -> &str {
         ".mcp.json" => ".mcp.json",
         _ => "other",
     }
+}
+
+fn has_extension(path: &Path, expected: &str) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case(expected))
 }
 
 fn file_stem(path: &Path, fallback: &str) -> String {
