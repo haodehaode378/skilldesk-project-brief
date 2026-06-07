@@ -185,8 +185,12 @@ function App() {
     const next = nextLocale(locale)
     setLocale(next)
     saveLocale(next)
+    updateSettings({ locale: next })
+  }
+
+  function updateSettings(patch: Partial<AppSettings>) {
     setSettings((current) => {
-      const nextSettings = { ...current, locale: next }
+      const nextSettings = { ...current, ...patch }
       saveAppSettings(nextSettings)
       return nextSettings
     })
@@ -201,6 +205,7 @@ function App() {
         options: {
           includePluginCaches: settings.includePluginCaches,
           mcpProbePolicy: settings.mcpProbePolicy,
+          scanRoots: settings.scanRoots,
         },
       })
       const parsedReport = scanReportSchema.parse(result)
@@ -357,13 +362,10 @@ function App() {
             copy={copy}
             locale={locale}
             settings={settings}
-            onIncludePluginCachesChange={(includePluginCaches) => {
-              setSettings((current) => {
-                const nextSettings = { ...current, includePluginCaches }
-                saveAppSettings(nextSettings)
-                return nextSettings
-              })
-            }}
+            onIncludePluginCachesChange={(includePluginCaches) =>
+              updateSettings({ includePluginCaches })
+            }
+            onScanRootsChange={(scanRoots) => updateSettings({ scanRoots })}
             onLocaleToggle={toggleLocale}
             onClearCache={clearReportCache}
           />
@@ -924,6 +926,7 @@ function SettingsView({
   locale,
   settings,
   onIncludePluginCachesChange,
+  onScanRootsChange,
   onLocaleToggle,
   onClearCache,
 }: {
@@ -931,6 +934,7 @@ function SettingsView({
   locale: Locale
   settings: AppSettings
   onIncludePluginCachesChange: (includePluginCaches: boolean) => void
+  onScanRootsChange: (scanRoots: string[]) => void
   onLocaleToggle: () => void
   onClearCache: () => void
 }) {
@@ -973,13 +977,20 @@ function SettingsView({
         <div>
           <dt>{copy.views.defaultScanRoots}</dt>
           <dd>
-            <ul className="settings-roots">
-              {settings.scanRoots.map((root) => (
-                <li key={root} className="path-cell">
-                  {root}
-                </li>
-              ))}
-            </ul>
+            <textarea
+              className="settings-roots-editor"
+              defaultValue={settings.scanRoots.join('\n')}
+              rows={Math.max(6, settings.scanRoots.length)}
+              spellCheck={false}
+              onBlur={(event) => {
+                const scanRoots = event.currentTarget.value
+                  .split(/\r?\n/)
+                  .map((root) => root.trim())
+                  .filter(Boolean)
+                onScanRootsChange(scanRoots)
+              }}
+            />
+            <p className="settings-help">{copy.views.scanRootsHelp}</p>
           </dd>
         </div>
         <div>

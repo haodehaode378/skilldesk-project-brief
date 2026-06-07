@@ -22,6 +22,7 @@ const MAX_MARKDOWN_SCAN_DEPTH: usize = 8;
 pub struct ScanOptions {
     include_plugin_caches: bool,
     mcp_probe_policy: Option<String>,
+    scan_roots: Option<Vec<String>>,
 }
 
 #[tauri::command]
@@ -39,61 +40,18 @@ pub fn scan_local_extensions(options: Option<ScanOptions>) -> Value {
     let mut issues = Vec::new();
 
     if let Some(home) = home_dir.as_ref() {
-        let skill_roots = [
-            (home.join(".codex").join("skills"), "codex"),
-            (home.join(".agents").join("skills"), "codex"),
-            (home.join(".claude").join("skills"), "claude-code"),
-        ];
+        let configured_roots = configured_scan_roots(home, options.scan_roots.as_deref());
 
-        for (root, platform) in skill_roots {
-            scan_skill_root(
+        for root in configured_roots {
+            scan_configured_root(
                 &root,
-                platform,
                 &now,
+                options.include_plugin_caches,
                 &mut roots,
                 &mut entities,
                 &mut issues,
             );
         }
-
-        scan_plugin_root(
-            &home.join(".codex").join("plugins"),
-            &now,
-            options.include_plugin_caches,
-            &mut roots,
-            &mut entities,
-            &mut issues,
-        );
-        scan_codex_config_toml(
-            &home.join(".codex").join("config.toml"),
-            &now,
-            &mut roots,
-            &mut entities,
-            &mut issues,
-        );
-        scan_markdown_root(
-            &home.join(".claude").join("commands"),
-            "command",
-            &now,
-            &mut roots,
-            &mut entities,
-            &mut issues,
-        );
-        scan_markdown_root(
-            &home.join(".claude").join("agents"),
-            "agent",
-            &now,
-            &mut roots,
-            &mut entities,
-            &mut issues,
-        );
-        scan_mcp_json_root(
-            &home.join(".claude").join("mcp-configs"),
-            &now,
-            &mut roots,
-            &mut entities,
-            &mut issues,
-        );
         scan_instruction_files(home, &now, &mut roots, &mut entities, &mut issues);
     }
 
@@ -121,8 +79,141 @@ pub fn scan_local_extensions(options: Option<ScanOptions>) -> Value {
     })
 }
 
+fn configured_scan_roots(home: &Path, scan_roots: Option<&[String]>) -> Vec<PathBuf> {
+    let roots = scan_roots
+        .filter(|roots| !roots.is_empty())
+        .map(|roots| roots.to_vec())
+        .unwrap_or_else(default_scan_roots);
+
+    roots
+        .into_iter()
+        .filter(|root| !root.trim().is_empty())
+        .map(|root| expand_scan_root(home, &root))
+        .collect()
+}
+
+fn default_scan_roots() -> Vec<String> {
+    [
+        "%USERPROFILE%\\.codex\\skills",
+        "%USERPROFILE%\\.agents\\skills",
+        "%USERPROFILE%\\.claude\\skills",
+        "%USERPROFILE%\\.claude\\commands",
+        "%USERPROFILE%\\.claude\\agents",
+        "%USERPROFILE%\\.codex\\plugins",
+        "%USERPROFILE%\\.claude\\plugins",
+        "%USERPROFILE%\\.codex\\config.toml",
+        "%USERPROFILE%\\.claude\\mcp-configs",
+    ]
+    .into_iter()
+    .map(ToString::to_string)
+    .collect()
+}
+
+fn expand_scan_root(home: &Path, root: &str) -> PathBuf {
+    let home_text = home.to_string_lossy();
+    let expanded = if root == "~" {
+        home_text.to_string()
+    } else if let Some(rest) = root.strip_prefix("~\\").or_else(|| root.strip_prefix("~/")) {
+        format!("{}\\{}", home_text, rest)
+    } else {
+        root.to_string()
+    };
+    let expanded = expanded
+        .replace("%USERPROFILE%", &home_text)
+        .replace("%HOME%", &home_text);
+    PathBuf::from(expanded)
+}
+
+fn scan_configured_root(
+    root: &Path,
+    discovered_at: &str,
+    include_plugin_caches: bool,
+    roots: &mut Vec<Value>,
+    entities: &mut Vec<Value>,
+    issues: &mut Vec<Value>,
+) {
+    let normalized = normalized_path_text(root);
+
+    if normalized.ends_with("\\.codex\\skills") {
+        scan_skill_root(root, "codex", discovered_at, roots, entities, issues);
+    } else if normalized.ends_with("\\.agents\\skills") {
+        scan_skill_root(root, "codex", discovered_at, roots, entities, issues);
+    } else if normalized.ends_with("\\.claude\\skills") {
+        scan_skill_root(root, "claude-code", discovered_at, roots, entities, issues);
+    } else if normalized.ends_with("\\.claude\\commands") {
+        scan_markdown_root(root, "command", discovered_at, roots, entities, issues);
+    } else if normalized.ends_with("\\.claude\\agents") {
+        scan_markdown_root(root, "agent", discovered_at, roots, entities, issues);
+    } else if normalized.ends_with("\\.codex\\plugins") {
+        scan_plugin_root(
+            root,
+            "codex",
+            discovered_at,
+            include_plugin_caches,
+            roots,
+            entities,
+            issues,
+        );
+    } else if normalized.ends_with("\\.claude\\plugins") {
+        scan_plugin_root(
+            root,
+            "claude-code",
+            discovered_at,
+            include_plugin_caches,
+            roots,
+            entities,
+            issues,
+        );
+    } else if normalized.ends_with("\\.codex\\config.toml") {
+        scan_codex_config_toml(root, discovered_at, roots, entities, issues);
+    } else if normalized.ends_with("\\.claude\\mcp-configs") {
+        scan_mcp_json_root(root, discovered_at, roots, entities, issues);
+    } else if is_instruction_file(root) {
+        if !root.exists() {
+            roots.push(root_result(root, "file", "missing", None));
+        } else if !root.is_file() {
+            roots.push(root_result(
+                root,
+                "file",
+                "error",
+                Some("Configured instruction path is not a file."),
+            ));
+        } else {
+            roots.push(root_result(root, "file", "scanned", None));
+            entities.push(build_instruction_entity(root, discovered_at));
+            if root
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name == ".mcp.json")
+            {
+                scan_mcp_json_file(root, discovered_at, entities, issues);
+            }
+        }
+    } else {
+        roots.push(root_result(
+            root,
+            if root.is_file() { "file" } else { "directory" },
+            "skipped",
+            Some("Scan root is not a supported SkillDesk MVP source."),
+        ));
+    }
+}
+
+fn normalized_path_text(path: &Path) -> String {
+    path.to_string_lossy()
+        .replace('/', "\\")
+        .to_ascii_lowercase()
+}
+
+fn is_instruction_file(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| matches!(name, "AGENTS.md" | "CLAUDE.md" | ".mcp.json"))
+}
+
 fn scan_plugin_root(
     root: &Path,
+    platform: &str,
     discovered_at: &str,
     include_plugin_caches: bool,
     roots: &mut Vec<Value>,
@@ -155,7 +246,9 @@ fn scan_plugin_root(
     );
 
     for manifest in manifests {
-        if let Some(entity) = build_plugin_entity(root, &manifest, discovered_at, report_issues) {
+        if let Some(entity) =
+            build_plugin_entity(root, platform, &manifest, discovered_at, report_issues)
+        {
             entities.push(entity);
         }
     }
@@ -655,6 +748,7 @@ fn build_instruction_entity(file: &Path, discovered_at: &str) -> Value {
 
 fn build_plugin_entity(
     plugin_root: &Path,
+    platform: &str,
     manifest_path: &Path,
     discovered_at: &str,
     report_issues: &mut Vec<Value>,
@@ -701,7 +795,7 @@ fn build_plugin_entity(
     let is_cache = path_contains(plugin_dir, "cache");
     let mut entity = base_entity(
         "plugin",
-        "codex",
+        platform,
         &name,
         plugin_root,
         manifest_path,
@@ -932,6 +1026,7 @@ mod tests {
         let mut issues = Vec::new();
         scan_plugin_root(
             &root,
+            "codex",
             "2026-06-07T00:00:00Z",
             false,
             &mut roots,
@@ -946,6 +1041,7 @@ mod tests {
         issues.clear();
         scan_plugin_root(
             &root,
+            "codex",
             "2026-06-07T00:00:00Z",
             true,
             &mut roots,
@@ -960,6 +1056,56 @@ mod tests {
         assert!(names.contains(&"cached-plugin"));
 
         fs::remove_dir_all(root).expect("remove plugin scan test dir");
+    }
+
+    #[test]
+    fn configured_claude_plugin_root_sets_platform() {
+        let home = unique_test_dir("configured-roots");
+        let root = home.join(".claude").join("plugins");
+        let plugin = root.join("demo-plugin");
+        fs::create_dir_all(&plugin).expect("create claude plugin dir");
+        fs::write(
+            plugin.join("plugin.json"),
+            r#"{"name":"demo-plugin","description":"Claude plugin."}"#,
+        )
+        .expect("write claude plugin manifest");
+
+        let mut roots = Vec::new();
+        let mut entities = Vec::new();
+        let mut issues = Vec::new();
+        scan_configured_root(
+            &root,
+            "2026-06-07T00:00:00Z",
+            false,
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
+
+        assert_eq!(entities.len(), 1);
+        assert_eq!(entities[0]["kind"], "plugin");
+        assert_eq!(entities[0]["platform"], "claude-code");
+        fs::remove_dir_all(home).expect("remove configured roots test dir");
+    }
+
+    #[test]
+    fn unsupported_configured_root_is_skipped() {
+        let root = unique_test_dir("unsupported-root");
+        let mut roots = Vec::new();
+        let mut entities = Vec::new();
+        let mut issues = Vec::new();
+
+        scan_configured_root(
+            &root,
+            "2026-06-07T00:00:00Z",
+            false,
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
+
+        assert_eq!(entities.len(), 0);
+        assert_eq!(roots[0]["status"], "skipped");
     }
 
     fn unique_test_dir(name: &str) -> PathBuf {

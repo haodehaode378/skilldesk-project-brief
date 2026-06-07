@@ -41,6 +41,7 @@ describe('scan report model', () => {
     expect(settings.scanRoots).toContain('%USERPROFILE%\\.codex\\skills')
     expect(settings.scanRoots).toContain('%USERPROFILE%\\.claude\\commands')
     expect(settings.scanRoots).toContain('%USERPROFILE%\\.codex\\plugins')
+    expect(settings.scanRoots).toContain('%USERPROFILE%\\.claude\\plugins')
     expect(settings.mcpProbePolicy).toBe('disabled')
     expect(settings.includePluginCaches).toBe(false)
   })

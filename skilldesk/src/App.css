@@ -583,23 +583,23 @@ tbody tr:hover,
   gap: 4px;
 }
 
-.settings-roots {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.settings-roots li {
+.settings-roots-editor {
+  width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--panel);
-  overflow: visible;
+  color: var(--text-h);
+  font: 12px var(--mono);
   padding: 8px 10px;
-  text-overflow: clip;
-  white-space: normal;
+  resize: vertical;
   overflow-wrap: anywhere;
+}
+
+.settings-help {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 8px 0 0;
 }
 
 .toggle-field {

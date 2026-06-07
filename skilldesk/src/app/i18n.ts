@@ -156,6 +156,7 @@ type AppCopy = {
     pluginCacheMode: string
     mcpProbePolicy: string
     defaultScanRoots: string
+    scanRootsHelp: string
     scanSafety: string
     scanSafetyBody: string
     scannerSelfCheck: string
@@ -326,6 +327,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       pluginCacheMode: '插件缓存扫描',
       mcpProbePolicy: 'MCP 探测策略',
       defaultScanRoots: '默认扫描范围',
+      scanRootsHelp: '每行一个扫描根。仅支持 MVP 明确的 Skill、命令、Agent、插件、MCP 配置和项目指令文件来源。',
       scanSafety: '扫描安全',
       scanSafetyBody:
         '当前版本只读取文件元数据和安全摘要，不执行脚本、hooks、插件命令或 Agent 任务。',
@@ -497,6 +499,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       pluginCacheMode: 'Plugin cache scanning',
       mcpProbePolicy: 'MCP probe policy',
       defaultScanRoots: 'Default scan roots',
+      scanRootsHelp:
+        'One scan root per line. Only MVP sources for skills, commands, agents, plugins, MCP configs, and instruction files are supported.',
       scanSafety: 'Scan safety',
       scanSafetyBody:
         'This version only reads file metadata and safe summaries. It never executes scripts, hooks, plugin commands, or agent tasks.',
