@@ -77,6 +77,8 @@ type AppCopy = {
     commands: string
     agents: string
     manifest: string
+    appliesTo: string
+    lines: string
     resources: string
     prompts: string
     probe: string
@@ -115,6 +117,7 @@ type AppCopy = {
     emptyMcp: string
     emptyPlugins: string
     emptySources: string
+    emptyInstructionFiles: string
     emptyIssues: string
     emptyFilteredIssues: string
   }
@@ -125,6 +128,7 @@ type AppCopy = {
     mcpTitle: string
     pluginsTitle: string
     sourcesTitle: string
+    instructionFilesTitle: string
     issuesTitle: string
     settingsTitle: string
     settingsBody: string
@@ -223,6 +227,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       commands: '命令',
       agents: 'Agents',
       manifest: 'Manifest',
+      appliesTo: '适用路径',
+      lines: '行数',
       resources: '资源',
       prompts: 'Prompts',
       probe: '探测',
@@ -261,6 +267,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       emptyMcp: '没有发现 MCP 服务配置。',
       emptyPlugins: '没有发现插件 manifest。',
       emptySources: '没有扫描来源记录。',
+      emptyInstructionFiles: '没有发现项目指令文件。',
       emptyIssues: '当前扫描没有发现问题。',
       emptyFilteredIssues: '没有发现符合条件的问题。',
     },
@@ -271,6 +278,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       mcpTitle: 'MCP 服务',
       pluginsTitle: '插件',
       sourcesTitle: '来源',
+      instructionFilesTitle: '项目指令文件',
       issuesTitle: '问题',
       settingsTitle: '设置',
       settingsBody: '界面语言和最近一次扫描报告会缓存在本机浏览器存储中。',
@@ -368,6 +376,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       commands: 'Commands',
       agents: 'Agents',
       manifest: 'Manifest',
+      appliesTo: 'Applies to',
+      lines: 'Lines',
       resources: 'Resources',
       prompts: 'Prompts',
       probe: 'Probe',
@@ -406,6 +416,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       emptyMcp: 'No MCP server configurations were found.',
       emptyPlugins: 'No plugin manifests were found.',
       emptySources: 'No scan roots were recorded.',
+      emptyInstructionFiles: 'No project instruction files were found.',
       emptyIssues: 'No issues were found in the current scan.',
       emptyFilteredIssues: 'No issues match the current filters.',
     },
@@ -417,6 +428,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       mcpTitle: 'MCP Servers',
       pluginsTitle: 'Plugins',
       sourcesTitle: 'Sources',
+      instructionFilesTitle: 'Project instruction files',
       issuesTitle: 'Issues',
       settingsTitle: 'Settings',
       settingsBody:

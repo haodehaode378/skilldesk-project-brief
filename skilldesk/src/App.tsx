@@ -686,6 +686,9 @@ function SourcesView({
   copy: typeof appCopy['zh-CN']
   report: ScanReport
 }) {
+  const instructionFiles = report.entities.filter(
+    (entity) => entity.kind === 'instruction-file',
+  )
   const scannedRoots = report.roots.filter((root) => root.status === 'scanned')
   const missingRoots = report.roots.filter((root) => root.status === 'missing')
   const skippedRoots = report.roots.filter((root) => root.status === 'skipped')
@@ -734,6 +737,38 @@ function SourcesView({
         </table>
       ) : (
         <EmptyState message={copy.labels.emptySources} />
+      )}
+      <SectionHeading title={copy.views.instructionFilesTitle} />
+      {instructionFiles.length > 0 ? (
+        <div className="instruction-card-list">
+          {instructionFiles.map((file) => (
+            <article key={file.id} className="instruction-card">
+              <header>
+                <div>
+                  <h4>{file.title ?? file.name}</h4>
+                  <span>{file.fileType}</span>
+                </div>
+                <StatusBadge copy={copy} status={file.health.status} />
+              </header>
+              <dl className="instruction-meta">
+                <div>
+                  <dt>{copy.labels.appliesTo}</dt>
+                  <dd className="path-cell">{file.appliesToPath}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.lines}</dt>
+                  <dd>{file.lineCount}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.path}</dt>
+                  <dd className="path-cell">{file.path}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState message={copy.labels.emptyInstructionFiles} />
       )}
     </section>
   )

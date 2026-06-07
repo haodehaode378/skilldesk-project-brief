@@ -440,6 +440,52 @@ button:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.instruction-card-list {
+  display: grid;
+  gap: 12px;
+}
+
+.instruction-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 14px;
+}
+
+.instruction-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.instruction-card h4 {
+  color: var(--text-h);
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+
+.instruction-card header span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.instruction-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px minmax(0, 1fr);
+  gap: 12px;
+  margin: 0;
+}
+
+.instruction-meta div {
+  min-width: 0;
+}
+
+.instruction-meta dd {
+  overflow-wrap: anywhere;
+}
+
 .empty-state {
   border-top: 1px solid var(--border);
   color: var(--muted);
@@ -697,6 +743,10 @@ code {
   }
 
   .plugin-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .instruction-meta {
     grid-template-columns: 1fr;
   }
 
