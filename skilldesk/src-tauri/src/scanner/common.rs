@@ -249,11 +249,16 @@ pub(crate) fn toml_string(config: &toml::Value, key: &str) -> Option<String> {
 
 pub(crate) fn url_host(url: &str) -> Option<String> {
     let without_scheme = url.split_once("://").map(|(_, rest)| rest).unwrap_or(url);
-    without_scheme
-        .split('/')
-        .next()
-        .filter(|value| !value.is_empty())
-        .map(ToString::to_string)
+    let authority = without_scheme.split('/').next()?;
+    let host = authority
+        .rsplit_once('@')
+        .map(|(_, host)| host)
+        .unwrap_or(authority);
+    if host.is_empty() {
+        None
+    } else {
+        Some(host.to_string())
+    }
 }
 
 pub(crate) fn instruction_file_type(name: &str) -> &str {
@@ -489,6 +494,18 @@ mod tests {
                 .and_then(Value::as_array)
                 .map(Vec::len),
             Some(1)
+        );
+    }
+
+    #[test]
+    fn url_host_redacts_credentials() {
+        assert_eq!(
+            url_host("https://user:secret@example.com/mcp"),
+            Some("example.com".to_string())
+        );
+        assert_eq!(
+            url_host("https://example.com:8443/mcp"),
+            Some("example.com:8443".to_string())
         );
     }
 }

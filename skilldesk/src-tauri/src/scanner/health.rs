@@ -451,14 +451,50 @@ pub(crate) fn mcp_health(
         }));
     }
 
-    let status = if issues.is_empty() {
-        "needs-review"
-    } else {
+    if url.is_some_and(|value| value.to_ascii_lowercase().starts_with("http://")) {
+        issues.push(json!({
+          "id": issue_id("mcp-non-https", config_path),
+          "severity": "medium",
+          "category": "security",
+          "message": format!("MCP server '{}' uses a non-HTTPS remote endpoint.", name),
+          "file": config_path.to_string_lossy(),
+          "recommendation": "Prefer HTTPS for remote MCP endpoints or review why plaintext HTTP is required.",
+        }));
+    }
+
+    let status = if command.is_none() && url.is_none() {
         "broken"
+    } else if issues
+        .iter()
+        .any(|issue| issue.get("category").and_then(Value::as_str) == Some("security"))
+    {
+        "at-risk"
+    } else {
+        "needs-review"
     };
 
     json!({
       "status": status,
       "issues": issues,
     })
+}
+
+#[cfg(test)]
+mod mcp_tests {
+    use super::*;
+
+    #[test]
+    fn flags_non_https_remote_mcp() {
+        let health = mcp_health(
+            "remote",
+            Path::new("C:\\Users\\example\\.mcp.json"),
+            None,
+            Some("http://example.invalid/mcp"),
+        );
+
+        assert_eq!(
+            health.get("status").and_then(Value::as_str),
+            Some("at-risk")
+        );
+    }
 }
