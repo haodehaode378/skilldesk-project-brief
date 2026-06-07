@@ -8,16 +8,21 @@ pub fn export_scan_report(report: Value) -> Result<String, String> {
         .join("SkillDesk");
     fs::create_dir_all(&export_dir).map_err(|error| error.to_string())?;
 
-    let generated_at = report
-        .get("generatedAt")
-        .and_then(Value::as_str)
-        .unwrap_or("scan-report");
+    let generated_at = report_generated_at(&report).unwrap_or("scan-report");
     let file_name = format!("skilldesk-report-{}.json", safe_file_stamp(generated_at));
     let export_path = export_dir.join(file_name);
     let json = serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?;
 
     fs::write(&export_path, json).map_err(|error| error.to_string())?;
     Ok(export_path.to_string_lossy().to_string())
+}
+
+fn report_generated_at(report: &Value) -> Option<&str> {
+    report
+        .get("scanReport")
+        .and_then(|value| value.get("generatedAt"))
+        .and_then(Value::as_str)
+        .or_else(|| report.get("generatedAt").and_then(Value::as_str))
 }
 
 fn downloads_dir() -> Option<PathBuf> {
@@ -53,6 +58,26 @@ mod tests {
             safe_file_stamp("2026-06-07T10:35:00Z"),
             "2026-06-07T10-35-00Z"
         );
+    }
+
+    #[test]
+    fn resolves_wrapped_report_generated_at() {
+        let report = serde_json::json!({
+            "scanReport": {
+                "generatedAt": "2026-06-07T10:35:00Z"
+            }
+        });
+
+        assert_eq!(report_generated_at(&report), Some("2026-06-07T10:35:00Z"));
+    }
+
+    #[test]
+    fn resolves_legacy_report_generated_at() {
+        let report = serde_json::json!({
+            "generatedAt": "2026-06-07T10:40:00Z"
+        });
+
+        assert_eq!(report_generated_at(&report), Some("2026-06-07T10:40:00Z"));
     }
 
     #[test]

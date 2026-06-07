@@ -7,6 +7,7 @@ import {
   saveCachedReport,
   saveLocale,
 } from './app/cache'
+import { buildExportPayload, type ReportSource } from './app/exportReport'
 import { appCopy, nextLocale } from './app/i18n'
 import './App.css'
 import { fixtureScanReport } from './fixtures'
@@ -44,7 +45,7 @@ const viewOrder: ViewKey[] = [
 type StatusFilter = HealthStatus | 'all'
 type EntityKindFilter = EntityKind | 'all'
 type IssueSeverityFilter = IssueSeverity | 'all'
-type ScanState = 'fixture' | 'cached' | 'scanning' | 'local' | 'error'
+type ScanState = ReportSource
 
 const statusFilters: StatusFilter[] = [
   'all',
@@ -195,8 +196,14 @@ function App() {
 
     try {
       const parsedReport = scanReportSchema.parse(report)
-      const exportPath = await invoke<string>('export_scan_report', {
+      const exportPayload = buildExportPayload({
+        exportedAt: new Date().toISOString(),
         report: parsedReport,
+        reportSource: scanState,
+        settings: defaultAppSettings,
+      })
+      const exportPath = await invoke<string>('export_scan_report', {
+        report: exportPayload,
       })
       setExportMessage(`${copy.dashboard.exportSuccess}: ${exportPath}`)
     } catch (error) {
