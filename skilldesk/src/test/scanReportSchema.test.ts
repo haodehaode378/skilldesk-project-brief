@@ -258,4 +258,72 @@ describe('scanReportSchema', () => {
 
     expect(report.totals.mcpServers).toBe(1)
   })
+
+  it('accepts local scanner shaped plugin entities', () => {
+    const report = scanReportSchema.parse({
+      schemaVersion: '0.1',
+      generatedAt: '2026-06-07T10:40:00Z',
+      machine: {
+        platform: 'win32',
+      },
+      roots: [
+        {
+          path: 'C:\\Users\\example\\.codex\\plugins',
+          kind: 'directory',
+          status: 'scanned',
+        },
+      ],
+      entities: [
+        {
+          id: 'plugin:codex:c--users-example--codex-plugins-cache-demo-plugin-json',
+          kind: 'plugin',
+          platform: 'codex',
+          name: 'demo-plugin',
+          description: 'A plugin manifest summarized by the local scanner.',
+          path: 'C:\\Users\\example\\.codex\\plugins\\cache\\demo',
+          source: 'plugin-cache',
+          tags: [],
+          discoveredAt: '2026-06-07T10:40:00Z',
+          health: {
+            status: 'ok',
+            issues: [],
+          },
+          manifestPath:
+            'C:\\Users\\example\\.codex\\plugins\\cache\\demo\\plugin.json',
+          version: '0.1.0',
+          publisher: 'example',
+          bundled: {
+            skills: 2,
+            commands: 0,
+            agents: 0,
+            mcpServers: 1,
+            hooks: 0,
+          },
+          cache: {
+            isCache: true,
+            isBackup: false,
+            cacheFamily: 'cache',
+          },
+        },
+      ],
+      totals: {
+        entities: 1,
+        skills: 0,
+        commands: 0,
+        agents: 0,
+        plugins: 1,
+        mcpServers: 0,
+        instructionFiles: 0,
+        byStatus: {
+          ok: 1,
+          'needs-review': 0,
+          'at-risk': 0,
+          broken: 0,
+        },
+      },
+      issues: [],
+    })
+
+    expect(report.totals.plugins).toBe(1)
+  })
 })

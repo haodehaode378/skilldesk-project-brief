@@ -40,6 +40,13 @@ pub fn scan_local_extensions() -> Value {
             );
         }
 
+        scan_plugin_root(
+            &home.join(".codex").join("plugins"),
+            &now,
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
         register_file_root(&home.join(".codex").join("config.toml"), &mut roots);
         scan_markdown_root(
             &home.join(".claude").join("commands"),
@@ -87,6 +94,74 @@ pub fn scan_local_extensions() -> Value {
       "totals": totals,
       "issues": issues,
     })
+}
+
+fn scan_plugin_root(
+    root: &Path,
+    discovered_at: &str,
+    roots: &mut Vec<Value>,
+    entities: &mut Vec<Value>,
+    report_issues: &mut Vec<Value>,
+) {
+    if !root.exists() {
+        roots.push(root_result(root, "directory", "missing", None));
+        return;
+    }
+
+    if !root.is_dir() {
+        roots.push(root_result(
+            root,
+            "directory",
+            "error",
+            Some("Configured plugin root is not a directory."),
+        ));
+        return;
+    }
+
+    roots.push(root_result(root, "directory", "scanned", None));
+    let mut manifests = Vec::new();
+    collect_plugin_manifests(root, 0, &mut manifests, report_issues);
+
+    for manifest in manifests {
+        if let Some(entity) = build_plugin_entity(root, &manifest, discovered_at, report_issues) {
+            entities.push(entity);
+        }
+    }
+}
+
+fn collect_plugin_manifests(
+    dir: &Path,
+    depth: usize,
+    manifests: &mut Vec<PathBuf>,
+    report_issues: &mut Vec<Value>,
+) {
+    if depth > MAX_MARKDOWN_SCAN_DEPTH || should_skip_path(dir) {
+        return;
+    }
+
+    let entries = match fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(error) => {
+            report_issues.push(json!({
+              "id": issue_id("path", dir),
+              "severity": "low",
+              "category": "path",
+              "message": "SkillDesk could not read a configured directory.",
+              "file": dir.to_string_lossy(),
+              "evidence": error.to_string(),
+            }));
+            return;
+        }
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.file_name().is_some_and(|name| name == "plugin.json") {
+            manifests.push(path);
+        } else if path.is_dir() && !should_skip_path(&path) {
+            collect_plugin_manifests(&path, depth + 1, manifests, report_issues);
+        }
+    }
 }
 
 fn scan_instruction_files(
@@ -469,6 +544,111 @@ fn build_instruction_entity(file: &Path, discovered_at: &str) -> Value {
     Value::Object(entity)
 }
 
+fn build_plugin_entity(
+    plugin_root: &Path,
+    manifest_path: &Path,
+    discovered_at: &str,
+    report_issues: &mut Vec<Value>,
+) -> Option<Value> {
+    let content = match fs::read_to_string(manifest_path) {
+        Ok(content) => content,
+        Err(error) => {
+            report_issues.push(json!({
+              "id": issue_id("plugin-read", manifest_path),
+              "severity": "low",
+              "category": "format",
+              "message": "SkillDesk could not read a plugin manifest.",
+              "file": manifest_path.to_string_lossy(),
+              "evidence": error.to_string(),
+            }));
+            return None;
+        }
+    };
+    let manifest: Value = match serde_json::from_str(&content) {
+        Ok(manifest) => manifest,
+        Err(error) => {
+            report_issues.push(json!({
+              "id": issue_id("plugin-json", manifest_path),
+              "severity": "medium",
+              "category": "format",
+              "message": "Plugin manifest JSON could not be parsed.",
+              "file": manifest_path.to_string_lossy(),
+              "evidence": error.to_string(),
+            }));
+            return None;
+        }
+    };
+    let plugin_dir = manifest_path.parent().unwrap_or(plugin_root);
+    let fallback_name = plugin_dir
+        .file_name()
+        .map(|value| value.to_string_lossy().to_string())
+        .unwrap_or_else(|| "plugin".to_string());
+    let name = manifest
+        .get("name")
+        .and_then(Value::as_str)
+        .unwrap_or(&fallback_name)
+        .to_string();
+    let health = plugin_health(&name, manifest_path, &manifest);
+    let is_cache = path_contains(plugin_dir, "cache");
+    let mut entity = base_entity(
+        "plugin",
+        "codex",
+        &name,
+        plugin_root,
+        manifest_path,
+        discovered_at,
+        manifest
+            .get("title")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+        manifest
+            .get("description")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+        health,
+    );
+    entity.insert("path".to_string(), json!(plugin_dir.to_string_lossy()));
+    entity.insert(
+        "source".to_string(),
+        json!(if is_cache { "plugin-cache" } else { "local" }),
+    );
+    entity.insert(
+        "manifestPath".to_string(),
+        json!(manifest_path.to_string_lossy()),
+    );
+    if let Some(version) = manifest.get("version").and_then(Value::as_str) {
+        entity.insert("version".to_string(), json!(version));
+    }
+    if let Some(publisher) = manifest.get("publisher").and_then(Value::as_str) {
+        entity.insert("publisher".to_string(), json!(publisher));
+    }
+    entity.insert(
+        "bundled".to_string(),
+        json!({
+          "skills": manifest_count(&manifest, "skills").unwrap_or_else(|| child_count(plugin_dir, "skills")),
+          "commands": manifest_count(&manifest, "commands").unwrap_or_else(|| child_count(plugin_dir, "commands")),
+          "agents": manifest_count(&manifest, "agents").unwrap_or_else(|| child_count(plugin_dir, "agents")),
+          "mcpServers": manifest_count(&manifest, "mcpServers").unwrap_or_default(),
+          "hooks": manifest_count(&manifest, "hooks").unwrap_or_default(),
+        }),
+    );
+    let mut cache = Map::new();
+    cache.insert("isCache".to_string(), json!(is_cache));
+    cache.insert(
+        "isBackup".to_string(),
+        json!(path_contains(plugin_dir, "backup") || path_contains(plugin_dir, "backups")),
+    );
+    if let Some(cache_family) = plugin_dir
+        .parent()
+        .and_then(Path::file_name)
+        .map(|value| value.to_string_lossy().to_string())
+    {
+        cache.insert("cacheFamily".to_string(), json!(cache_family));
+    }
+    entity.insert("cache".to_string(), Value::Object(cache));
+    Some(Value::Object(entity))
+}
+
 fn build_mcp_server_entity(
     name: &str,
     config: &Value,
@@ -673,6 +853,32 @@ fn instruction_health(name: &str, file: &Path, content: &str) -> Value {
     })
 }
 
+fn plugin_health(name: &str, manifest_path: &Path, manifest: &Value) -> Value {
+    let mut issues = Vec::new();
+
+    if manifest.get("name").and_then(Value::as_str).is_none() {
+        issues.push(json!({
+          "id": issue_id("plugin-name", manifest_path),
+          "severity": "low",
+          "category": "metadata",
+          "message": format!("Plugin '{}' has no manifest name.", name),
+          "file": manifest_path.to_string_lossy(),
+          "recommendation": "Add a stable name field to plugin.json.",
+        }));
+    }
+
+    let status = if issues.is_empty() {
+        "ok"
+    } else {
+        "needs-review"
+    };
+
+    json!({
+      "status": status,
+      "issues": issues,
+    })
+}
+
 fn skill_health(name: &str, skill_md: &Path, content: &str, description: Option<&str>) -> Value {
     let mut issues = Vec::new();
 
@@ -807,6 +1013,7 @@ fn calculate_totals(entities: &[Value]) -> Value {
     let mut commands = 0;
     let mut agents = 0;
     let mut mcp_servers = 0;
+    let mut plugins = 0;
     let mut instruction_files = 0;
 
     for entity in entities {
@@ -814,6 +1021,7 @@ fn calculate_totals(entities: &[Value]) -> Value {
             Some("skill") => skills += 1,
             Some("command") => commands += 1,
             Some("agent") => agents += 1,
+            Some("plugin") => plugins += 1,
             Some("mcp-server") => mcp_servers += 1,
             Some("instruction-file") => instruction_files += 1,
             _ => {}
@@ -837,7 +1045,7 @@ fn calculate_totals(entities: &[Value]) -> Value {
       "skills": skills,
       "commands": commands,
       "agents": agents,
-      "plugins": 0,
+      "plugins": plugins,
       "mcpServers": mcp_servers,
       "instructionFiles": instruction_files,
       "byStatus": {
@@ -846,6 +1054,37 @@ fn calculate_totals(entities: &[Value]) -> Value {
         "at-risk": at_risk,
         "broken": broken,
       },
+    })
+}
+
+fn manifest_count(manifest: &Value, key: &str) -> Option<usize> {
+    let value = manifest.get(key)?;
+    if let Some(items) = value.as_array() {
+        return Some(items.len());
+    }
+    if let Some(items) = value.as_object() {
+        return Some(items.len());
+    }
+    None
+}
+
+fn child_count(root: &Path, child_name: &str) -> usize {
+    let path = root.join(child_name);
+    if !path.exists() || !path.is_dir() {
+        return 0;
+    }
+
+    fs::read_dir(path)
+        .map(|entries| entries.flatten().count())
+        .unwrap_or_default()
+}
+
+fn path_contains(path: &Path, needle: &str) -> bool {
+    path.components().any(|component| {
+        component
+            .as_os_str()
+            .to_str()
+            .is_some_and(|value| value.eq_ignore_ascii_case(needle))
     })
 }
 
