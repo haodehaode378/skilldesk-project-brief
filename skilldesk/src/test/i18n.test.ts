@@ -12,4 +12,18 @@ describe('i18n copy', () => {
     expect(nextLocale('zh-CN')).toBe('en-US')
     expect(nextLocale('en-US')).toBe('zh-CN')
   })
+
+  it('keeps Chinese and English copy keys aligned', () => {
+    expect(flattenKeys(appCopy['zh-CN'])).toEqual(flattenKeys(appCopy['en-US']))
+  })
 })
+
+function flattenKeys(value: unknown, prefix = ''): string[] {
+  if (!value || typeof value !== 'object') {
+    return [prefix]
+  }
+
+  return Object.entries(value)
+    .flatMap(([key, child]) => flattenKeys(child, prefix ? `${prefix}.${key}` : key))
+    .sort()
+}
