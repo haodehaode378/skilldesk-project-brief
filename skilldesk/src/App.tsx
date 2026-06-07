@@ -44,6 +44,7 @@ const viewOrder: ViewKey[] = [
 type StatusFilter = HealthStatus | 'all'
 type EntityKindFilter = EntityKind | 'all'
 type IssueSeverityFilter = IssueSeverity | 'all'
+type ScanState = 'fixture' | 'cached' | 'scanning' | 'local' | 'error'
 
 const statusFilters: StatusFilter[] = [
   'all',
@@ -116,6 +117,34 @@ function formatKind(kind: EntityKind, copy: typeof appCopy['zh-CN']) {
   return labels[kind]
 }
 
+function formatReportDate(value: string, locale: Locale) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+}
+
+function formatReportSource(
+  scanState: ScanState,
+  copy: typeof appCopy['zh-CN'],
+) {
+  const labels: Record<ScanState, string> = {
+    fixture: copy.dashboard.reportSourceFixture,
+    cached: copy.dashboard.reportSourceCached,
+    scanning: copy.dashboard.reportSourceScanning,
+    local: copy.dashboard.reportSourceLocal,
+    error: copy.dashboard.reportSourceError,
+  }
+
+  return labels[scanState]
+}
+
 function App() {
   const [locale, setLocale] = useState<Locale>(() => loadLocale())
   const [initialCachedReport] = useState(() => loadCachedReport())
@@ -123,8 +152,8 @@ function App() {
   const [report, setReport] = useState<ScanReport>(
     () => initialCachedReport ?? fixtureScanReport,
   )
-  const [scanState, setScanState] = useState<'fixture' | 'scanning' | 'local' | 'error'>(
-    () => (initialCachedReport ? 'local' : 'fixture'),
+  const [scanState, setScanState] = useState<ScanState>(
+    () => (initialCachedReport ? 'cached' : 'fixture'),
   )
   const [scanError, setScanError] = useState('')
   const [exportMessage, setExportMessage] = useState('')
@@ -245,6 +274,7 @@ function App() {
         {activeView === 'overview' && (
           <OverviewView
             copy={copy}
+            locale={locale}
             report={report}
             totals={totals}
             scanState={scanState}
@@ -296,17 +326,21 @@ function App() {
 
 function OverviewView({
   copy,
+  locale,
   report,
   totals,
   scanState,
   scanError,
 }: {
   copy: typeof appCopy['zh-CN']
+  locale: Locale
   report: ScanReport
   totals: ScanReport['totals']
-  scanState: 'fixture' | 'scanning' | 'local' | 'error'
+  scanState: ScanState
   scanError: string
 }) {
+  const isLocalReport = scanState === 'local' || scanState === 'cached'
+
   return (
     <>
       <section className="summary-grid" aria-label="Health summary">
@@ -321,22 +355,45 @@ function OverviewView({
       <section className="panel">
         <div>
           <h3>
-            {scanState === 'local'
+            {isLocalReport
               ? copy.dashboard.localPanelTitle
               : copy.dashboard.panelTitle}
           </h3>
           <p>
-            {scanState === 'local'
+            {isLocalReport
               ? copy.dashboard.localPanelBody
               : copy.dashboard.panelBody}
           </p>
           {scanState === 'error' && <p className="error-text">{scanError}</p>}
         </div>
         <code>
-          {scanState === 'local'
+          {isLocalReport
             ? copy.dashboard.localPhaseTag
             : copy.dashboard.phaseTag}
         </code>
+      </section>
+
+      <section className="report-meta" aria-label={copy.dashboard.reportSummaryTitle}>
+        <ReportMetaItem
+          label={copy.dashboard.reportSource}
+          value={formatReportSource(scanState, copy)}
+        />
+        <ReportMetaItem
+          label={copy.dashboard.generatedAt}
+          value={formatReportDate(report.generatedAt, locale)}
+        />
+        <ReportMetaItem
+          label={copy.dashboard.scanRoots}
+          value={String(report.roots.length)}
+        />
+        <ReportMetaItem
+          label={copy.dashboard.machinePlatform}
+          value={report.machine.platform}
+        />
+        <ReportMetaItem
+          label={copy.dashboard.schemaVersion}
+          value={report.schemaVersion}
+        />
       </section>
 
       <section className="split-grid">
@@ -353,6 +410,15 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </article>
+  )
+}
+
+function ReportMetaItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   )
 }
 

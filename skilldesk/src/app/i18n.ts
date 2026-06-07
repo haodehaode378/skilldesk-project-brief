@@ -34,6 +34,17 @@ type AppCopy = {
     localPanelTitle: string
     localPanelBody: string
     localPhaseTag: string
+    reportSummaryTitle: string
+    reportSource: string
+    reportSourceFixture: string
+    reportSourceCached: string
+    reportSourceScanning: string
+    reportSourceLocal: string
+    reportSourceError: string
+    generatedAt: string
+    scanRoots: string
+    machinePlatform: string
+    schemaVersion: string
   }
   labels: {
     name: string
@@ -143,6 +154,17 @@ export const appCopy: Record<Locale, AppCopy> = {
       localPanelBody:
         '扫描器已读取默认 Skill 来源，只收集路径、数量、修改时间和基础元数据，不执行脚本或插件命令。',
       localPhaseTag: '阶段 4：本机扫描',
+      reportSummaryTitle: '报告摘要',
+      reportSource: '数据来源',
+      reportSourceFixture: '示例数据',
+      reportSourceCached: '本机缓存报告',
+      reportSourceScanning: '正在扫描',
+      reportSourceLocal: '刚完成的本机扫描',
+      reportSourceError: '扫描失败，显示上次报告',
+      generatedAt: '生成时间',
+      scanRoots: '来源数量',
+      machinePlatform: '平台',
+      schemaVersion: 'Schema',
     },
     labels: {
       name: '名称',
@@ -251,6 +273,17 @@ export const appCopy: Record<Locale, AppCopy> = {
       localPanelBody:
         'The scanner reads default skill sources and collects paths, counts, mtimes, and basic metadata without executing scripts or plugin commands.',
       localPhaseTag: 'Phase 4: local scan',
+      reportSummaryTitle: 'Report summary',
+      reportSource: 'Data source',
+      reportSourceFixture: 'Fixture data',
+      reportSourceCached: 'Cached local report',
+      reportSourceScanning: 'Scanning',
+      reportSourceLocal: 'Fresh local scan',
+      reportSourceError: 'Scan failed, showing previous report',
+      generatedAt: 'Generated at',
+      scanRoots: 'Scan roots',
+      machinePlatform: 'Platform',
+      schemaVersion: 'Schema',
     },
     labels: {
       name: 'Name',
