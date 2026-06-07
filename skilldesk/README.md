@@ -1,73 +1,85 @@
-# React + TypeScript + Vite
+# SkillDesk
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SkillDesk 是一个 Windows-first、本地只读的 agent 扩展健康仪表盘。
 
-Currently, two official plugins are available:
+它用于盘点和审计本机 agent 生态中的：
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Codex / `.agents` / Claude Code skills
+- Claude Code slash commands
+- Claude Code agents
+- Codex plugin manifests
+- MCP server 配置
+- 项目指令文件，例如 `AGENTS.md`、`CLAUDE.md`、`.mcp.json`
 
-## React Compiler
+SkillDesk 不运行 agent，不执行 skill 脚本、hooks、插件命令或 MCP tools。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 技术栈
 
-## Expanding the ESLint configuration
+- Tauri
+- React
+- Vite
+- TypeScript
+- Rust scanner core
+- pnpm
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 开发
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```powershell
+pnpm install
+pnpm dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 验证
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```powershell
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
+cargo test --manifest-path src-tauri/Cargo.toml
+cargo check --manifest-path src-tauri/Cargo.toml
+pnpm tauri build --debug
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 只读扫描边界
+
+当前 scanner 只读取文本元数据和文件状态：
+
+- 路径、mtime、文件大小指纹
+- Markdown 标题和描述
+- plugin manifest 摘要
+- MCP 配置名称、传输类型、命令名、参数数量、URL host
+- Git remote、branch、commit、dirty 状态
+
+安全约束：
+
+- 不执行第三方脚本或二进制文件
+- 不运行 hooks
+- 不运行插件命令
+- 不调用任意 MCP tools
+- 不显示 API key、auth token、session、log、credential 文件内容
+- MCP 主动探测默认禁用
+
+## UI
+
+默认语言是中文。设置页和顶部操作区都可以在中文和英文之间切换。
+
+主要视图：
+
+- 概览
+- 扩展清单
+- MCP 服务
+- 插件
+- 来源
+- 问题
+- 设置
+
+## 构建产物
+
+Debug 打包后会生成：
+
+```text
+src-tauri\target\debug\skilldesk.exe
+src-tauri\target\debug\bundle\msi\SkillDesk_0.1.0_x64_en-US.msi
+src-tauri\target\debug\bundle\nsis\SkillDesk_0.1.0_x64-setup.exe
 ```
