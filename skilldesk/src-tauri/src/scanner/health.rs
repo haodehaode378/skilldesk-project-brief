@@ -437,6 +437,7 @@ pub(crate) fn mcp_health(
     config_path: &Path,
     command: Option<&str>,
     url: Option<&str>,
+    probe_error: Option<&str>,
 ) -> Value {
     let mut issues = Vec::new();
 
@@ -462,7 +463,19 @@ pub(crate) fn mcp_health(
         }));
     }
 
-    let status = if command.is_none() && url.is_none() {
+    if let Some(error) = probe_error {
+        issues.push(json!({
+          "id": issue_id("mcp-unreachable", config_path),
+          "severity": "medium",
+          "category": "mcp",
+          "message": format!("MCP server '{}' was not reachable by lightweight probe.", name),
+          "file": config_path.to_string_lossy(),
+          "evidence": error,
+          "recommendation": "Check whether the MCP server URL is running and reachable, or disable probing for this source.",
+        }));
+    }
+
+    let status = if command.is_none() && url.is_none() || probe_error.is_some() {
         "broken"
     } else if issues
         .iter()
@@ -490,6 +503,7 @@ mod mcp_tests {
             Path::new("C:\\Users\\example\\.mcp.json"),
             None,
             Some("http://example.invalid/mcp"),
+            None,
         );
 
         assert_eq!(

@@ -10,7 +10,9 @@ use serde_json::{json, Map, Value};
 use std::{
     collections::HashSet,
     env, fs,
+    net::{TcpStream, ToSocketAddrs},
     path::{Path, PathBuf},
+    time::{Duration, Instant},
 };
 
 const SCHEMA_VERSION: &str = "0.1";
@@ -28,7 +30,7 @@ pub struct ScanOptions {
 #[tauri::command]
 pub fn scan_local_extensions(options: Option<ScanOptions>) -> Value {
     let options = options.unwrap_or_default();
-    let _mcp_probe_policy = options.mcp_probe_policy.as_deref().unwrap_or("disabled");
+    let mcp_probe_policy = options.mcp_probe_policy.as_deref().unwrap_or("disabled");
     let now = iso_now();
     let home_dir = env::var("USERPROFILE")
         .or_else(|_| env::var("HOME"))
@@ -47,16 +49,31 @@ pub fn scan_local_extensions(options: Option<ScanOptions>) -> Value {
                 &root,
                 &now,
                 options.include_plugin_caches,
+                mcp_probe_policy,
                 &mut roots,
                 &mut entities,
                 &mut issues,
             );
         }
-        scan_instruction_files(home, &now, &mut roots, &mut entities, &mut issues);
+        scan_instruction_files(
+            home,
+            &now,
+            mcp_probe_policy,
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
     }
 
     if let Ok(current_dir) = env::current_dir() {
-        scan_instruction_files(&current_dir, &now, &mut roots, &mut entities, &mut issues);
+        scan_instruction_files(
+            &current_dir,
+            &now,
+            mcp_probe_policy,
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
     }
 
     apply_duplicate_name_issues(&mut entities);
@@ -128,6 +145,7 @@ fn scan_configured_root(
     root: &Path,
     discovered_at: &str,
     include_plugin_caches: bool,
+    mcp_probe_policy: &str,
     roots: &mut Vec<Value>,
     entities: &mut Vec<Value>,
     issues: &mut Vec<Value>,
@@ -165,9 +183,23 @@ fn scan_configured_root(
             issues,
         );
     } else if normalized.ends_with("\\.codex\\config.toml") {
-        scan_codex_config_toml(root, discovered_at, roots, entities, issues);
+        scan_codex_config_toml(
+            root,
+            discovered_at,
+            mcp_probe_policy,
+            roots,
+            entities,
+            issues,
+        );
     } else if normalized.ends_with("\\.claude\\mcp-configs") {
-        scan_mcp_json_root(root, discovered_at, roots, entities, issues);
+        scan_mcp_json_root(
+            root,
+            discovered_at,
+            mcp_probe_policy,
+            roots,
+            entities,
+            issues,
+        );
     } else if is_instruction_file(root) {
         if !root.exists() {
             roots.push(root_result(root, "file", "missing", None));
@@ -186,7 +218,7 @@ fn scan_configured_root(
                 .and_then(|name| name.to_str())
                 .is_some_and(|name| name == ".mcp.json")
             {
-                scan_mcp_json_file(root, discovered_at, entities, issues);
+                scan_mcp_json_file(root, discovered_at, mcp_probe_policy, entities, issues);
             }
         }
     } else {
@@ -306,6 +338,7 @@ fn is_plugin_cache_path(path: &Path) -> bool {
 fn scan_instruction_files(
     start: &Path,
     discovered_at: &str,
+    mcp_probe_policy: &str,
     roots: &mut Vec<Value>,
     entities: &mut Vec<Value>,
     report_issues: &mut Vec<Value>,
@@ -323,7 +356,13 @@ fn scan_instruction_files(
                 roots.push(root_result(&file, "file", "scanned", None));
                 entities.push(build_instruction_entity(&file, discovered_at));
                 if file_name == ".mcp.json" {
-                    scan_mcp_json_file(&file, discovered_at, entities, report_issues);
+                    scan_mcp_json_file(
+                        &file,
+                        discovered_at,
+                        mcp_probe_policy,
+                        entities,
+                        report_issues,
+                    );
                 }
             }
         }
@@ -420,6 +459,7 @@ fn collect_markdown_files(
 fn scan_mcp_json_root(
     root: &Path,
     discovered_at: &str,
+    mcp_probe_policy: &str,
     roots: &mut Vec<Value>,
     entities: &mut Vec<Value>,
     report_issues: &mut Vec<Value>,
@@ -444,7 +484,13 @@ fn scan_mcp_json_root(
     collect_json_files(root, 0, &mut json_files, report_issues);
 
     for file in json_files {
-        scan_mcp_json_file(&file, discovered_at, entities, report_issues);
+        scan_mcp_json_file(
+            &file,
+            discovered_at,
+            mcp_probe_policy,
+            entities,
+            report_issues,
+        );
     }
 }
 
@@ -486,6 +532,7 @@ fn collect_json_files(
 fn scan_mcp_json_file(
     file: &Path,
     discovered_at: &str,
+    mcp_probe_policy: &str,
     entities: &mut Vec<Value>,
     report_issues: &mut Vec<Value>,
 ) {
@@ -524,13 +571,20 @@ fn scan_mcp_json_file(
     };
 
     for (name, config) in servers {
-        entities.push(build_mcp_server_entity(name, config, file, discovered_at));
+        entities.push(build_mcp_server_entity(
+            name,
+            config,
+            file,
+            discovered_at,
+            mcp_probe_policy,
+        ));
     }
 }
 
 fn scan_codex_config_toml(
     file: &Path,
     discovered_at: &str,
+    mcp_probe_policy: &str,
     roots: &mut Vec<Value>,
     entities: &mut Vec<Value>,
     report_issues: &mut Vec<Value>,
@@ -587,6 +641,7 @@ fn scan_codex_config_toml(
             &server_config,
             file,
             discovered_at,
+            mcp_probe_policy,
         ));
     }
 }
@@ -857,6 +912,7 @@ fn build_mcp_server_entity(
     config: &Value,
     config_path: &Path,
     discovered_at: &str,
+    mcp_probe_policy: &str,
 ) -> Value {
     let command = config
         .get("command")
@@ -864,7 +920,18 @@ fn build_mcp_server_entity(
         .map(ToString::to_string);
     let url = config.get("url").and_then(Value::as_str);
     let transport = mcp_transport(config, command.as_deref(), url);
-    let health = mcp_health(name, config_path, command.as_deref(), url);
+    let probe = mcp_probe_result(mcp_probe_policy, url);
+    let probe_error = probe
+        .get("reachable")
+        .and_then(Value::as_bool)
+        .is_some_and(|reachable| !reachable)
+        .then(|| {
+            probe
+                .get("error")
+                .and_then(Value::as_str)
+                .unwrap_or("MCP URL was not reachable.")
+        });
+    let health = mcp_health(name, config_path, command.as_deref(), url, probe_error);
     let mut entity = base_entity(
         "mcp-server",
         "unknown",
@@ -881,12 +948,7 @@ fn build_mcp_server_entity(
         json!(config_path.to_string_lossy()),
     );
     entity.insert("transport".to_string(), json!(transport));
-    entity.insert(
-        "probe".to_string(),
-        json!({
-          "attempted": false,
-        }),
-    );
+    entity.insert("probe".to_string(), probe);
     if let Some(value) = command {
         entity.insert("command".to_string(), json!(value));
     }
@@ -904,11 +966,29 @@ fn build_codex_mcp_server_entity(
     config: &toml::Value,
     config_path: &Path,
     discovered_at: &str,
+    mcp_probe_policy: &str,
 ) -> Value {
     let command = toml_string(config, "command");
     let url = toml_string(config, "url");
     let transport = codex_mcp_transport(config, command.as_deref(), url.as_deref());
-    let health = mcp_health(name, config_path, command.as_deref(), url.as_deref());
+    let probe = mcp_probe_result(mcp_probe_policy, url.as_deref());
+    let probe_error = probe
+        .get("reachable")
+        .and_then(Value::as_bool)
+        .is_some_and(|reachable| !reachable)
+        .then(|| {
+            probe
+                .get("error")
+                .and_then(Value::as_str)
+                .unwrap_or("MCP URL was not reachable.")
+        });
+    let health = mcp_health(
+        name,
+        config_path,
+        command.as_deref(),
+        url.as_deref(),
+        probe_error,
+    );
     let mut entity = base_entity(
         "mcp-server",
         "codex",
@@ -925,12 +1005,7 @@ fn build_codex_mcp_server_entity(
         json!(config_path.to_string_lossy()),
     );
     entity.insert("transport".to_string(), json!(transport));
-    entity.insert(
-        "probe".to_string(),
-        json!({
-          "attempted": false,
-        }),
-    );
+    entity.insert("probe".to_string(), probe);
     if let Some(value) = command {
         entity.insert("command".to_string(), json!(value));
     }
@@ -945,6 +1020,82 @@ fn build_codex_mcp_server_entity(
         entity.insert("urlHost".to_string(), json!(host));
     }
     Value::Object(entity)
+}
+
+fn mcp_probe_result(policy: &str, url: Option<&str>) -> Value {
+    if policy == "disabled" {
+        return json!({ "attempted": false });
+    }
+
+    let Some(url) = url else {
+        return json!({ "attempted": false });
+    };
+    let Some((host, port)) = url_host_port(url) else {
+        return json!({
+          "attempted": true,
+          "reachable": false,
+          "error": "MCP URL host or port could not be parsed.",
+        });
+    };
+
+    if policy == "local-only" && !is_local_host(&host) {
+        return json!({ "attempted": false });
+    }
+
+    let start = Instant::now();
+    let address = format!("{}:{}", host, port);
+    let reachable = address
+        .to_socket_addrs()
+        .ok()
+        .and_then(|mut addresses| {
+            addresses.find_map(|socket_address| {
+                TcpStream::connect_timeout(&socket_address, Duration::from_millis(250)).ok()
+            })
+        })
+        .is_some();
+    let latency_ms = start.elapsed().as_millis() as u64;
+
+    if reachable {
+        json!({
+          "attempted": true,
+          "reachable": true,
+          "latencyMs": latency_ms,
+        })
+    } else {
+        json!({
+          "attempted": true,
+          "reachable": false,
+          "latencyMs": latency_ms,
+          "error": "MCP URL TCP endpoint was not reachable.",
+        })
+    }
+}
+
+fn url_host_port(url: &str) -> Option<(String, u16)> {
+    let scheme = url.split_once("://").map(|(scheme, _)| scheme)?;
+    let host = url_host(url)?;
+    if let Some((host, port)) = host.rsplit_once(':') {
+        let port = port.parse::<u16>().ok()?;
+        let host = host
+            .trim_start_matches('[')
+            .trim_end_matches(']')
+            .to_string();
+        return Some((host, port));
+    }
+
+    let port = match scheme.to_ascii_lowercase().as_str() {
+        "http" => 80,
+        "https" => 443,
+        _ => return None,
+    };
+    Some((host, port))
+}
+
+fn is_local_host(host: &str) -> bool {
+    matches!(
+        host.to_ascii_lowercase().as_str(),
+        "localhost" | "127.0.0.1" | "::1" | "[::1]"
+    )
 }
 
 fn build_skill_entity(root: &Path, skill_md: &Path, platform: &str, discovered_at: &str) -> Value {
@@ -1000,6 +1151,7 @@ mod tests {
     use super::*;
     use std::{
         fs,
+        net::TcpListener,
         time::{SystemTime, UNIX_EPOCH},
     };
 
@@ -1077,6 +1229,7 @@ mod tests {
             &root,
             "2026-06-07T00:00:00Z",
             false,
+            "disabled",
             &mut roots,
             &mut entities,
             &mut issues,
@@ -1099,6 +1252,7 @@ mod tests {
             &root,
             "2026-06-07T00:00:00Z",
             false,
+            "disabled",
             &mut roots,
             &mut entities,
             &mut issues,
@@ -1184,6 +1338,27 @@ mod tests {
         assert!(report["totals"]["mcpServers"].as_u64().unwrap_or_default() >= 1);
 
         fs::remove_dir_all(home).expect("remove local scan fixture dir");
+    }
+
+    #[test]
+    fn mcp_probe_reaches_local_tcp_endpoint() {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind local test listener");
+        let port = listener
+            .local_addr()
+            .expect("read local listener address")
+            .port();
+        let probe = mcp_probe_result("local-only", Some(&format!("http://127.0.0.1:{port}/mcp")));
+
+        assert_eq!(probe["attempted"], true);
+        assert_eq!(probe["reachable"], true);
+    }
+
+    #[test]
+    fn local_only_mcp_probe_skips_remote_hosts() {
+        let probe = mcp_probe_result("local-only", Some("https://example.invalid/mcp"));
+
+        assert_eq!(probe["attempted"], false);
+        assert!(probe.get("reachable").is_none());
     }
 
     fn unique_test_dir(name: &str) -> PathBuf {
