@@ -207,12 +207,12 @@ export const appCopy: Record<Locale, AppCopy> = {
       },
       panelTitle: '正在使用示例扫描数据',
       panelBody:
-        '当前界面已接入安全 fixture。下一步会把这些视图继续细化，再连接只读 scanner core。',
-      phaseTag: '阶段 3：fixture UI',
+        '当前显示内置示例数据。点击扫描本地来源后，会切换为本机只读扫描报告。',
+      phaseTag: '示例数据',
       localPanelTitle: '正在使用本机只读扫描数据',
       localPanelBody:
         '扫描器已读取默认 Skill 来源，只收集路径、数量、修改时间和基础元数据，不执行脚本或插件命令。',
-      localPhaseTag: '阶段 4：本机扫描',
+      localPhaseTag: '本机只读扫描',
       reportSummaryTitle: '报告摘要',
       reportSource: '数据来源',
       reportSourceFixture: '示例数据',
@@ -379,12 +379,12 @@ export const appCopy: Record<Locale, AppCopy> = {
       },
       panelTitle: 'Using fixture scan data',
       panelBody:
-        'This shell is now wired to safe fixture data. Next, the views will be refined before connecting the read-only scanner core.',
-      phaseTag: 'Phase 3: fixture UI',
+        'The built-in fixture report is currently shown. Scan local roots to switch to a read-only local report.',
+      phaseTag: 'Fixture data',
       localPanelTitle: 'Using local read-only scan data',
       localPanelBody:
         'The scanner reads default skill sources and collects paths, counts, mtimes, and basic metadata without executing scripts or plugin commands.',
-      localPhaseTag: 'Phase 4: local scan',
+      localPhaseTag: 'Local read-only scan',
       reportSummaryTitle: 'Report summary',
       reportSource: 'Data source',
       reportSourceFixture: 'Fixture data',
