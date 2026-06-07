@@ -78,7 +78,7 @@ nav {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 10px;
 }
 
 .topbar h2 {
@@ -91,6 +91,14 @@ nav {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.topbar-message {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  margin: 0 0 20px;
+  overflow-wrap: anywhere;
 }
 
 button {

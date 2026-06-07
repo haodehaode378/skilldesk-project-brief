@@ -16,7 +16,10 @@ type AppCopy = {
     title: string
     scanButton: string
     scanningButton: string
+    exportButton: string
     languageButton: string
+    exportSuccess: string
+    exportError: string
     summary: {
       totalExtensions: string
       needsReview: string
@@ -88,7 +91,10 @@ export const appCopy: Record<Locale, AppCopy> = {
       title: 'Agent 扩展生态体检台',
       scanButton: '扫描本地来源',
       scanningButton: '正在扫描',
+      exportButton: '导出报告',
       languageButton: 'English',
+      exportSuccess: '报告已导出',
+      exportError: '导出失败',
       summary: {
         totalExtensions: '扩展总数',
         needsReview: '需要复查',
@@ -160,7 +166,10 @@ export const appCopy: Record<Locale, AppCopy> = {
       title: 'Agent extension health dashboard',
       scanButton: 'Scan local roots',
       scanningButton: 'Scanning',
+      exportButton: 'Export report',
       languageButton: '中文',
+      exportSuccess: 'Report exported',
+      exportError: 'Export failed',
       summary: {
         totalExtensions: 'Total extensions',
         needsReview: 'Needs review',

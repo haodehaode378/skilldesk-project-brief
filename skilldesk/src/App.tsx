@@ -78,6 +78,7 @@ function App() {
     () => (initialCachedReport ? 'local' : 'fixture'),
   )
   const [scanError, setScanError] = useState('')
+  const [exportMessage, setExportMessage] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedEntityId, setSelectedEntityId] = useState(
     (initialCachedReport ?? fixtureScanReport).entities[0]?.id ?? '',
@@ -102,6 +103,21 @@ function App() {
     } catch (error) {
       setScanError(error instanceof Error ? error.message : String(error))
       setScanState('error')
+    }
+  }
+
+  async function exportCurrentReport() {
+    setExportMessage('')
+
+    try {
+      const parsedReport = scanReportSchema.parse(report)
+      const exportPath = await invoke<string>('export_scan_report', {
+        report: parsedReport,
+      })
+      setExportMessage(`${copy.dashboard.exportSuccess}: ${exportPath}`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      setExportMessage(`${copy.dashboard.exportError}: ${message}`)
     }
   }
 
@@ -159,8 +175,17 @@ function App() {
                 ? copy.dashboard.scanningButton
                 : copy.dashboard.scanButton}
             </button>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={scanState === 'scanning'}
+              onClick={exportCurrentReport}
+            >
+              {copy.dashboard.exportButton}
+            </button>
           </div>
         </header>
+        {exportMessage && <p className="topbar-message">{exportMessage}</p>}
 
         {activeView === 'overview' && (
           <OverviewView
