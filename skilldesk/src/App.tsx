@@ -1,6 +1,16 @@
+import { useState } from 'react'
+
+import { appCopy, nextLocale } from './app/i18n'
 import './App.css'
+import { fixtureScanReport } from './fixtures'
+import type { Locale } from './model'
 
 function App() {
+  const [locale, setLocale] = useState<Locale>('zh-CN')
+  const copy = appCopy[locale]
+  const report = fixtureScanReport
+  const totals = report.totals
+
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="Primary navigation">
@@ -10,58 +20,69 @@ function App() {
           </div>
           <div>
             <h1>SkillDesk</h1>
-            <p>Local extension health</p>
+            <p>{copy.brandSubtitle}</p>
           </div>
         </div>
         <nav>
           <a aria-current="page" href="#overview">
-            Overview
+            {copy.nav.overview}
           </a>
-          <a href="#extensions">Extensions</a>
-          <a href="#mcp">MCP Servers</a>
-          <a href="#plugins">Plugins</a>
-          <a href="#sources">Sources</a>
-          <a href="#issues">Issues</a>
+          <a href="#extensions">{copy.nav.extensions}</a>
+          <a href="#mcp">{copy.nav.mcpServers}</a>
+          <a href="#plugins">{copy.nav.plugins}</a>
+          <a href="#sources">{copy.nav.sources}</a>
+          <a href="#issues">{copy.nav.issues}</a>
+          <a href="#settings">{copy.nav.settings}</a>
         </nav>
       </aside>
 
       <section className="workspace" id="overview">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Read-only MVP scaffold</p>
-            <h2>Agent extension health dashboard</h2>
+            <p className="eyebrow">{copy.dashboard.eyebrow}</p>
+            <h2>{copy.dashboard.title}</h2>
           </div>
-          <button type="button">Scan local roots</button>
+          <div className="topbar-actions">
+            <button type="button" className="secondary-button" onClick={() => setLocale(nextLocale(locale))}>
+              {copy.dashboard.languageButton}
+            </button>
+            <button type="button">{copy.dashboard.scanButton}</button>
+          </div>
         </header>
 
         <section className="summary-grid" aria-label="Health summary">
           <article>
-            <span>Total extensions</span>
-            <strong>0</strong>
+            <span>{copy.dashboard.summary.totalExtensions}</span>
+            <strong>{totals.entities}</strong>
           </article>
           <article>
-            <span>Needs review</span>
-            <strong>0</strong>
+            <span>{copy.dashboard.summary.needsReview}</span>
+            <strong>{totals.byStatus['needs-review']}</strong>
           </article>
           <article>
-            <span>MCP servers</span>
-            <strong>0</strong>
+            <span>{copy.dashboard.summary.mcpServers}</span>
+            <strong>{totals.mcpServers}</strong>
           </article>
           <article>
-            <span>Broken</span>
-            <strong>0</strong>
+            <span>{copy.dashboard.summary.broken}</span>
+            <strong>{totals.byStatus.broken}</strong>
+          </article>
+          <article>
+            <span>{copy.dashboard.summary.skills}</span>
+            <strong>{totals.skills}</strong>
+          </article>
+          <article>
+            <span>{copy.dashboard.summary.plugins}</span>
+            <strong>{totals.plugins}</strong>
           </article>
         </section>
 
         <section className="panel">
           <div>
-            <h3>No scan has run yet</h3>
-            <p>
-              The first implementation pass will connect this shell to fixture
-              data, then to the read-only scanner core.
-            </p>
+            <h3>{copy.dashboard.panelTitle}</h3>
+            <p>{copy.dashboard.panelBody}</p>
           </div>
-          <code>Phase 1: scaffold</code>
+          <code>{copy.dashboard.phaseTag}</code>
         </section>
       </section>
     </main>

@@ -81,6 +81,13 @@ nav a:hover {
   font-size: 28px;
 }
 
+.topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 button {
   border: 1px solid var(--border-strong);
   border-radius: 6px;
@@ -91,6 +98,11 @@ button {
   cursor: pointer;
 }
 
+.secondary-button {
+  background: var(--surface);
+  color: var(--text-h);
+}
+
 button:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
@@ -98,7 +110,7 @@ button:focus-visible {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -165,6 +177,10 @@ code {
   .panel {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .topbar-actions {
+    justify-content: flex-start;
   }
 
   .summary-grid {
