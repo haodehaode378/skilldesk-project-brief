@@ -10,8 +10,9 @@ import {
 import { appCopy, nextLocale } from './app/i18n'
 import './App.css'
 import { fixtureScanReport } from './fixtures'
-import { scanReportSchema } from './model'
+import { defaultAppSettings, scanReportSchema } from './model'
 import type {
+  AppSettings,
   EntityKind,
   HealthStatus,
   IssueSeverity,
@@ -257,7 +258,11 @@ function App() {
           />
         )}
         {activeView === 'settings' && (
-          <SettingsView copy={copy} locale={locale} />
+          <SettingsView
+            copy={copy}
+            locale={locale}
+            settings={defaultAppSettings}
+          />
         )}
       </section>
     </main>
@@ -631,9 +636,11 @@ function IssuesView({
 function SettingsView({
   copy,
   locale,
+  settings,
 }: {
   copy: typeof appCopy['zh-CN']
   locale: Locale
+  settings: AppSettings
 }) {
   return (
     <section className="table-panel">
@@ -645,11 +652,31 @@ function SettingsView({
         </div>
         <div>
           <dt>{copy.views.pluginCacheMode}</dt>
-          <dd>summary-only</dd>
+          <dd>
+            {settings.includePluginCaches
+              ? copy.labels.enabled
+              : copy.views.pluginCacheSummaryOnly}
+          </dd>
         </div>
         <div>
           <dt>{copy.views.mcpProbePolicy}</dt>
-          <dd>disabled</dd>
+          <dd>{copy.views.mcpProbeDisabled}</dd>
+        </div>
+        <div>
+          <dt>{copy.views.defaultScanRoots}</dt>
+          <dd>
+            <ul className="settings-roots">
+              {settings.scanRoots.map((root) => (
+                <li key={root} className="path-cell">
+                  {root}
+                </li>
+              ))}
+            </ul>
+          </dd>
+        </div>
+        <div>
+          <dt>{copy.views.scanSafety}</dt>
+          <dd>{copy.views.scanSafetyBody}</dd>
         </div>
       </dl>
     </section>

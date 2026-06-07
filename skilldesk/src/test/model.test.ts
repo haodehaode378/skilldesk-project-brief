@@ -34,4 +34,14 @@ describe('scan report model', () => {
   it('defaults to Chinese UI locale', () => {
     expect(appSettingsSchema.parse(defaultAppSettings).locale).toBe('zh-CN')
   })
+
+  it('includes read-only MVP default scan roots', () => {
+    const settings = appSettingsSchema.parse(defaultAppSettings)
+
+    expect(settings.scanRoots).toContain('%USERPROFILE%\\.codex\\skills')
+    expect(settings.scanRoots).toContain('%USERPROFILE%\\.claude\\commands')
+    expect(settings.scanRoots).toContain('%USERPROFILE%\\.codex\\plugins')
+    expect(settings.mcpProbePolicy).toBe('disabled')
+    expect(settings.includePluginCaches).toBe(false)
+  })
 })

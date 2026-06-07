@@ -54,6 +54,7 @@ type AppCopy = {
     remote: string
     dirty: string
     clean: string
+    enabled: string
     statusOk: string
     statusNeedsReview: string
     statusAtRisk: string
@@ -87,6 +88,11 @@ type AppCopy = {
     languageSetting: string
     pluginCacheMode: string
     mcpProbePolicy: string
+    defaultScanRoots: string
+    scanSafety: string
+    scanSafetyBody: string
+    pluginCacheSummaryOnly: string
+    mcpProbeDisabled: string
     readOnlyNotice: string
   }
 }
@@ -148,6 +154,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       remote: '远程',
       dirty: '有未提交变化',
       clean: '干净',
+      enabled: '已启用',
       statusOk: '正常',
       statusNeedsReview: '需要复查',
       statusAtRisk: '有风险',
@@ -181,6 +188,12 @@ export const appCopy: Record<Locale, AppCopy> = {
       languageSetting: '界面语言',
       pluginCacheMode: '插件缓存扫描',
       mcpProbePolicy: 'MCP 探测策略',
+      defaultScanRoots: '默认扫描范围',
+      scanSafety: '扫描安全',
+      scanSafetyBody:
+        '当前版本只读取文件元数据和安全摘要，不执行脚本、hooks、插件命令或 Agent 任务。',
+      pluginCacheSummaryOnly: '仅汇总 manifest 和内置资源数量',
+      mcpProbeDisabled: '已禁用主动连接探测',
       readOnlyNotice: '只读模式：不会执行脚本、hooks、插件命令或 Agent 任务。',
     },
   },
@@ -240,6 +253,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       remote: 'Remote',
       dirty: 'Dirty',
       clean: 'Clean',
+      enabled: 'Enabled',
       statusOk: 'OK',
       statusNeedsReview: 'Needs review',
       statusAtRisk: 'At risk',
@@ -275,6 +289,12 @@ export const appCopy: Record<Locale, AppCopy> = {
       languageSetting: 'Interface language',
       pluginCacheMode: 'Plugin cache scanning',
       mcpProbePolicy: 'MCP probe policy',
+      defaultScanRoots: 'Default scan roots',
+      scanSafety: 'Scan safety',
+      scanSafetyBody:
+        'This version only reads file metadata and safe summaries. It never executes scripts, hooks, plugin commands, or agent tasks.',
+      pluginCacheSummaryOnly: 'Manifest and bundled resource counts only',
+      mcpProbeDisabled: 'Active connection probing is disabled',
       readOnlyNotice:
         'Read-only mode: scripts, hooks, plugin commands, and agent tasks are never executed.',
     },

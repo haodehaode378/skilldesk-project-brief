@@ -361,6 +361,25 @@ tbody tr:hover,
   gap: 4px;
 }
 
+.settings-roots {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings-roots li {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  overflow: visible;
+  padding: 8px 10px;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 dt {
   color: var(--muted);
   font-size: 12px;

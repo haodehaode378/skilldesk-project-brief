@@ -8,6 +8,7 @@ export const defaultAppSettings: AppSettings = {
     '%USERPROFILE%\\.claude\\skills',
     '%USERPROFILE%\\.claude\\commands',
     '%USERPROFILE%\\.claude\\agents',
+    '%USERPROFILE%\\.codex\\plugins',
     '%USERPROFILE%\\.codex\\config.toml',
     '%USERPROFILE%\\.claude\\mcp-configs',
   ],
