@@ -49,15 +49,20 @@ nav {
   gap: 4px;
 }
 
-nav a {
-  color: var(--text);
-  text-decoration: none;
-  padding: 10px 12px;
+.nav-button {
+  width: 100%;
+  border: 0;
   border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  padding: 10px 12px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
 }
 
-nav a[aria-current='page'],
-nav a:hover {
+.nav-button[aria-current='page'],
+.nav-button:hover {
   color: var(--text-h);
   background: var(--surface);
 }
@@ -96,6 +101,11 @@ button {
   padding: 9px 14px;
   font: inherit;
   cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
 }
 
 .secondary-button {
@@ -188,6 +198,33 @@ button:focus-visible {
 .section-heading p {
   margin: 0;
   color: var(--muted);
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.filter-button {
+  border-color: var(--border);
+  background: var(--panel);
+  color: var(--text);
+  padding: 7px 10px;
+}
+
+.filter-button[aria-pressed='true'] {
+  border-color: var(--border-strong);
+  background: var(--text-h);
+  color: var(--bg);
+}
+
+.empty-state {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  margin: 0;
+  padding: 18px 4px 2px;
 }
 
 table {

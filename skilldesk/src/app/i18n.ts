@@ -47,6 +47,12 @@ type AppCopy = {
     statusNeedsReview: string
     statusAtRisk: string
     statusBroken: string
+    allStatuses: string
+    emptyExtensions: string
+    emptyMcp: string
+    emptyPlugins: string
+    emptySources: string
+    emptyIssues: string
   }
   views: {
     extensionsTitle: string
@@ -115,6 +121,12 @@ export const appCopy: Record<Locale, AppCopy> = {
       statusNeedsReview: '需要复查',
       statusAtRisk: '有风险',
       statusBroken: '已损坏',
+      allStatuses: '全部状态',
+      emptyExtensions: '没有发现符合条件的扩展。',
+      emptyMcp: '没有发现 MCP 服务配置。',
+      emptyPlugins: '没有发现插件 manifest。',
+      emptySources: '没有扫描来源记录。',
+      emptyIssues: '当前扫描没有发现问题。',
     },
     views: {
       extensionsTitle: '扩展清单',
@@ -181,6 +193,12 @@ export const appCopy: Record<Locale, AppCopy> = {
       statusNeedsReview: 'Needs review',
       statusAtRisk: 'At risk',
       statusBroken: 'Broken',
+      allStatuses: 'All statuses',
+      emptyExtensions: 'No extensions match the current filters.',
+      emptyMcp: 'No MCP server configurations were found.',
+      emptyPlugins: 'No plugin manifests were found.',
+      emptySources: 'No scan roots were recorded.',
+      emptyIssues: 'No issues were found in the current scan.',
     },
     views: {
       extensionsTitle: 'Extension inventory',

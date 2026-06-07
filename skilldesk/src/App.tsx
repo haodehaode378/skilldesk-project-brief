@@ -32,6 +32,16 @@ const viewOrder: ViewKey[] = [
   'settings',
 ]
 
+type StatusFilter = HealthStatus | 'all'
+
+const statusFilters: StatusFilter[] = [
+  'all',
+  'ok',
+  'needs-review',
+  'at-risk',
+  'broken',
+]
+
 const navKeyByView: Record<ViewKey, keyof typeof appCopy['zh-CN']['nav']> = {
   overview: 'overview',
   extensions: 'extensions',
@@ -68,6 +78,7 @@ function App() {
     () => (initialCachedReport ? 'local' : 'fixture'),
   )
   const [scanError, setScanError] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedEntityId, setSelectedEntityId] = useState(
     (initialCachedReport ?? fixtureScanReport).entities[0]?.id ?? '',
   )
@@ -164,6 +175,8 @@ function App() {
           <ExtensionsView
             copy={copy}
             entities={report.entities}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
             selectedEntityId={selectedEntity?.id}
             onSelect={setSelectedEntityId}
           />
@@ -249,22 +262,45 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
 function ExtensionsView({
   copy,
   entities,
+  statusFilter,
+  onStatusFilterChange,
   selectedEntityId,
   onSelect,
 }: {
   copy: typeof appCopy['zh-CN']
   entities: ManagedEntity[]
+  statusFilter: StatusFilter
+  onStatusFilterChange: (status: StatusFilter) => void
   selectedEntityId?: string
   onSelect: (id: string) => void
 }) {
+  const filteredEntities =
+    statusFilter === 'all'
+      ? entities
+      : entities.filter((entity) => entity.health.status === statusFilter)
   const selectedEntity =
-    entities.find((entity) => entity.id === selectedEntityId) ?? entities[0]
+    filteredEntities.find((entity) => entity.id === selectedEntityId) ??
+    filteredEntities[0]
 
   return (
     <section className="content-grid">
       <div className="table-panel">
         <SectionHeading title={copy.views.extensionsTitle} body={copy.views.extensionsBody} />
-        <EntityTable copy={copy} entities={entities} onSelect={onSelect} selectedEntityId={selectedEntity?.id} />
+        <StatusFilterBar
+          copy={copy}
+          activeStatus={statusFilter}
+          onChange={onStatusFilterChange}
+        />
+        {filteredEntities.length > 0 ? (
+          <EntityTable
+            copy={copy}
+            entities={filteredEntities}
+            onSelect={onSelect}
+            selectedEntityId={selectedEntity?.id}
+          />
+        ) : (
+          <EmptyState message={copy.labels.emptyExtensions} />
+        )}
       </div>
       {selectedEntity && <DetailPanel copy={copy} entity={selectedEntity} />}
     </section>
@@ -283,30 +319,34 @@ function McpView({
   return (
     <section className="table-panel">
       <SectionHeading title={copy.views.mcpTitle} body={copy.views.readOnlyNotice} />
-      <table>
-        <thead>
-          <tr>
-            <th>{copy.labels.name}</th>
-            <th>{copy.labels.transport}</th>
-            <th>{copy.labels.status}</th>
-            <th>{copy.labels.tools}</th>
-            <th>{copy.labels.path}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {servers.map((server) => (
-            <tr key={server.id}>
-              <td>{server.name}</td>
-              <td>{server.kind === 'mcp-server' ? server.transport : ''}</td>
-              <td>
-                <StatusBadge copy={copy} status={server.health.status} />
-              </td>
-              <td>{server.kind === 'mcp-server' ? (server.probe?.toolsCount ?? '-') : '-'}</td>
-              <td className="path-cell">{server.path}</td>
+      {servers.length > 0 ? (
+        <table>
+          <thead>
+            <tr>
+              <th>{copy.labels.name}</th>
+              <th>{copy.labels.transport}</th>
+              <th>{copy.labels.status}</th>
+              <th>{copy.labels.tools}</th>
+              <th>{copy.labels.path}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {servers.map((server) => (
+              <tr key={server.id}>
+                <td>{server.name}</td>
+                <td>{server.kind === 'mcp-server' ? server.transport : ''}</td>
+                <td>
+                  <StatusBadge copy={copy} status={server.health.status} />
+                </td>
+                <td>{server.kind === 'mcp-server' ? (server.probe?.toolsCount ?? '-') : '-'}</td>
+                <td className="path-cell">{server.path}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <EmptyState message={copy.labels.emptyMcp} />
+      )}
     </section>
   )
 }
@@ -323,30 +363,34 @@ function PluginsView({
   return (
     <section className="table-panel">
       <SectionHeading title={copy.views.pluginsTitle} body={copy.views.readOnlyNotice} />
-      <table>
-        <thead>
-          <tr>
-            <th>{copy.labels.name}</th>
-            <th>{copy.labels.source}</th>
-            <th>Skills</th>
-            <th>MCP</th>
-            <th>{copy.labels.status}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {plugins.map((plugin) => (
-            <tr key={plugin.id}>
-              <td>{plugin.name}</td>
-              <td>{plugin.source}</td>
-              <td>{plugin.kind === 'plugin' ? plugin.bundled.skills : '-'}</td>
-              <td>{plugin.kind === 'plugin' ? plugin.bundled.mcpServers : '-'}</td>
-              <td>
-                <StatusBadge copy={copy} status={plugin.health.status} />
-              </td>
+      {plugins.length > 0 ? (
+        <table>
+          <thead>
+            <tr>
+              <th>{copy.labels.name}</th>
+              <th>{copy.labels.source}</th>
+              <th>Skills</th>
+              <th>MCP</th>
+              <th>{copy.labels.status}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {plugins.map((plugin) => (
+              <tr key={plugin.id}>
+                <td>{plugin.name}</td>
+                <td>{plugin.source}</td>
+                <td>{plugin.kind === 'plugin' ? plugin.bundled.skills : '-'}</td>
+                <td>{plugin.kind === 'plugin' ? plugin.bundled.mcpServers : '-'}</td>
+                <td>
+                  <StatusBadge copy={copy} status={plugin.health.status} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <EmptyState message={copy.labels.emptyPlugins} />
+      )}
     </section>
   )
 }
@@ -361,26 +405,30 @@ function SourcesView({
   return (
     <section className="table-panel">
       <SectionHeading title={copy.views.sourcesTitle} body={copy.views.readOnlyNotice} />
-      <table>
-        <thead>
-          <tr>
-            <th>{copy.labels.roots}</th>
-            <th>{copy.labels.kind}</th>
-            <th>{copy.labels.status}</th>
-            <th>{copy.labels.issues}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {report.roots.map((root) => (
-            <tr key={root.path}>
-              <td className="path-cell">{root.path}</td>
-              <td>{root.kind}</td>
-              <td>{root.status}</td>
-              <td>{root.reason ?? '-'}</td>
+      {report.roots.length > 0 ? (
+        <table>
+          <thead>
+            <tr>
+              <th>{copy.labels.roots}</th>
+              <th>{copy.labels.kind}</th>
+              <th>{copy.labels.status}</th>
+              <th>{copy.labels.issues}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {report.roots.map((root) => (
+              <tr key={root.path}>
+                <td className="path-cell">{root.path}</td>
+                <td>{root.kind}</td>
+                <td>{root.status}</td>
+                <td>{root.reason ?? '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <EmptyState message={copy.labels.emptySources} />
+      )}
     </section>
   )
 }
@@ -395,26 +443,30 @@ function IssuesView({
   return (
     <section className="table-panel">
       <SectionHeading title={copy.views.issuesTitle} body={copy.views.readOnlyNotice} />
-      <table>
-        <thead>
-          <tr>
-            <th>{copy.labels.status}</th>
-            <th>{copy.labels.kind}</th>
-            <th>{copy.labels.issues}</th>
-            <th>{copy.labels.path}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {report.issues.map((issue) => (
-            <tr key={issue.id}>
-              <td>{issue.severity}</td>
-              <td>{issue.category}</td>
-              <td>{issue.message}</td>
-              <td className="path-cell">{issue.file ?? '-'}</td>
+      {report.issues.length > 0 ? (
+        <table>
+          <thead>
+            <tr>
+              <th>{copy.labels.status}</th>
+              <th>{copy.labels.kind}</th>
+              <th>{copy.labels.issues}</th>
+              <th>{copy.labels.path}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {report.issues.map((issue) => (
+              <tr key={issue.id}>
+                <td>{issue.severity}</td>
+                <td>{issue.category}</td>
+                <td>{issue.message}</td>
+                <td className="path-cell">{issue.file ?? '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <EmptyState message={copy.labels.emptyIssues} />
+      )}
     </section>
   )
 }
@@ -473,12 +525,18 @@ function IssuesPreview({
     <section className="table-panel">
       <SectionHeading title={copy.views.issuesTitle} />
       <ul className="issue-list">
-        {report.issues.map((issue) => (
-          <li key={issue.id}>
-            <strong>{issue.severity}</strong>
-            <span>{issue.message}</span>
+        {report.issues.length > 0 ? (
+          report.issues.map((issue) => (
+            <li key={issue.id}>
+              <strong>{issue.severity}</strong>
+              <span>{issue.message}</span>
+            </li>
+          ))
+        ) : (
+          <li>
+            <span>{copy.labels.emptyIssues}</span>
           </li>
-        ))}
+        )}
       </ul>
     </section>
   )
@@ -577,6 +635,36 @@ function StatusBadge({
   status: HealthStatus
 }) {
   return <span className={`status-badge status-${status}`}>{formatStatus(status, copy)}</span>
+}
+
+function StatusFilterBar({
+  copy,
+  activeStatus,
+  onChange,
+}: {
+  copy: typeof appCopy['zh-CN']
+  activeStatus: StatusFilter
+  onChange: (status: StatusFilter) => void
+}) {
+  return (
+    <div className="filter-bar" aria-label={copy.labels.status}>
+      {statusFilters.map((status) => (
+        <button
+          key={status}
+          type="button"
+          className="filter-button"
+          aria-pressed={activeStatus === status}
+          onClick={() => onChange(status)}
+        >
+          {status === 'all' ? copy.labels.allStatuses : formatStatus(status, copy)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function EmptyState({ message }: { message: string }) {
+  return <p className="empty-state">{message}</p>
 }
 
 function SectionHeading({ title, body }: { title: string; body?: string }) {
