@@ -28,6 +28,37 @@ type AppCopy = {
     panelBody: string
     phaseTag: string
   }
+  labels: {
+    name: string
+    kind: string
+    platform: string
+    source: string
+    status: string
+    issues: string
+    path: string
+    transport: string
+    tools: string
+    roots: string
+    statusOk: string
+    statusNeedsReview: string
+    statusAtRisk: string
+    statusBroken: string
+  }
+  views: {
+    extensionsTitle: string
+    extensionsBody: string
+    detailTitle: string
+    mcpTitle: string
+    pluginsTitle: string
+    sourcesTitle: string
+    issuesTitle: string
+    settingsTitle: string
+    settingsBody: string
+    languageSetting: string
+    pluginCacheMode: string
+    mcpProbePolicy: string
+    readOnlyNotice: string
+  }
 }
 
 export const appCopy: Record<Locale, AppCopy> = {
@@ -60,6 +91,37 @@ export const appCopy: Record<Locale, AppCopy> = {
         '当前界面已接入安全 fixture。下一步会把这些视图继续细化，再连接只读 scanner core。',
       phaseTag: '阶段 3：fixture UI',
     },
+    labels: {
+      name: '名称',
+      kind: '类型',
+      platform: '平台',
+      source: '来源',
+      status: '状态',
+      issues: '问题',
+      path: '路径',
+      transport: '传输',
+      tools: '工具',
+      roots: '扫描来源',
+      statusOk: '正常',
+      statusNeedsReview: '需要复查',
+      statusAtRisk: '有风险',
+      statusBroken: '已损坏',
+    },
+    views: {
+      extensionsTitle: '扩展清单',
+      extensionsBody: '统一展示 Skill、命令、Agent、插件、MCP 和项目指令文件。',
+      detailTitle: '详情',
+      mcpTitle: 'MCP 服务',
+      pluginsTitle: '插件',
+      sourcesTitle: '来源',
+      issuesTitle: '问题',
+      settingsTitle: '设置',
+      settingsBody: '这些设置目前是界面预览，真实持久化会在 scanner 接入后实现。',
+      languageSetting: '界面语言',
+      pluginCacheMode: '插件缓存扫描',
+      mcpProbePolicy: 'MCP 探测策略',
+      readOnlyNotice: '只读模式：不会执行脚本、hooks、插件命令或 Agent 任务。',
+    },
   },
   'en-US': {
     brandSubtitle: 'Local extension health',
@@ -89,6 +151,40 @@ export const appCopy: Record<Locale, AppCopy> = {
       panelBody:
         'This shell is now wired to safe fixture data. Next, the views will be refined before connecting the read-only scanner core.',
       phaseTag: 'Phase 3: fixture UI',
+    },
+    labels: {
+      name: 'Name',
+      kind: 'Kind',
+      platform: 'Platform',
+      source: 'Source',
+      status: 'Status',
+      issues: 'Issues',
+      path: 'Path',
+      transport: 'Transport',
+      tools: 'Tools',
+      roots: 'Scan roots',
+      statusOk: 'OK',
+      statusNeedsReview: 'Needs review',
+      statusAtRisk: 'At risk',
+      statusBroken: 'Broken',
+    },
+    views: {
+      extensionsTitle: 'Extension inventory',
+      extensionsBody:
+        'Unified view of skills, commands, agents, plugins, MCP servers, and instruction files.',
+      detailTitle: 'Detail',
+      mcpTitle: 'MCP Servers',
+      pluginsTitle: 'Plugins',
+      sourcesTitle: 'Sources',
+      issuesTitle: 'Issues',
+      settingsTitle: 'Settings',
+      settingsBody:
+        'These settings are UI preview values. Persistence will be added after the scanner is wired.',
+      languageSetting: 'Interface language',
+      pluginCacheMode: 'Plugin cache scanning',
+      mcpProbePolicy: 'MCP probe policy',
+      readOnlyNotice:
+        'Read-only mode: scripts, hooks, plugin commands, and agent tasks are never executed.',
     },
   },
 }

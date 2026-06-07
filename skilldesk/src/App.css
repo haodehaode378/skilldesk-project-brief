@@ -116,7 +116,9 @@ button:focus-visible {
 }
 
 .summary-grid article,
-.panel {
+.panel,
+.table-panel,
+.detail-panel {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
@@ -154,6 +156,154 @@ button:focus-visible {
   max-width: 62ch;
 }
 
+.split-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+}
+
+.section-heading {
+  margin-bottom: 16px;
+}
+
+.section-heading h3 {
+  margin: 0 0 6px;
+  color: var(--text-h);
+  font-size: 18px;
+}
+
+.section-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+th,
+td {
+  border-top: 1px solid var(--border);
+  padding: 10px 8px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+td {
+  color: var(--text);
+}
+
+tbody tr {
+  cursor: default;
+}
+
+tbody tr:hover,
+.selected-row {
+  background: var(--panel);
+}
+
+.path-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-ok {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.status-needs-review {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.status-at-risk {
+  color: #9a3412;
+  background: #ffedd5;
+}
+
+.status-broken {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.detail-panel h3 {
+  margin: 0 0 10px;
+  color: var(--text-h);
+  font-size: 20px;
+}
+
+.detail-panel dl,
+.settings-list {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+}
+
+.detail-panel dl div,
+.settings-list div {
+  display: grid;
+  gap: 4px;
+}
+
+dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+dd {
+  margin: 0;
+  color: var(--text-h);
+}
+
+.issue-list {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 16px 0 0;
+  list-style: none;
+}
+
+.issue-list li {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.issue-list strong {
+  color: var(--text-h);
+  font-size: 12px;
+}
+
 code {
   white-space: nowrap;
 }
@@ -185,5 +335,10 @@ code {
 
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .split-grid,
+  .content-grid {
+    grid-template-columns: 1fr;
   }
 }
