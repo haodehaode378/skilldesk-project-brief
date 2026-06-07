@@ -1108,6 +1108,84 @@ mod tests {
         assert_eq!(roots[0]["status"], "skipped");
     }
 
+    #[test]
+    fn scan_local_extensions_reads_configured_fixture_roots() {
+        let home = unique_test_dir("local-scan-fixture");
+        let codex_skill = home.join(".codex").join("skills").join("review-skill");
+        let claude_command = home.join(".claude").join("commands");
+        let claude_agent = home.join(".claude").join("agents");
+        let codex_plugin = home.join(".codex").join("plugins").join("demo-plugin");
+        let mcp_configs = home.join(".claude").join("mcp-configs");
+
+        fs::create_dir_all(&codex_skill).expect("create skill dir");
+        fs::create_dir_all(&claude_command).expect("create command dir");
+        fs::create_dir_all(&claude_agent).expect("create agent dir");
+        fs::create_dir_all(&codex_plugin).expect("create plugin dir");
+        fs::create_dir_all(&mcp_configs).expect("create mcp config dir");
+
+        fs::write(
+            codex_skill.join("SKILL.md"),
+            "# Review Skill\nUse when reviewing local scanner fixture metadata.",
+        )
+        .expect("write skill");
+        fs::write(
+            claude_command.join("review.md"),
+            "# Review Command\nUse when testing command discovery.",
+        )
+        .expect("write command");
+        fs::write(
+            claude_agent.join("reviewer.md"),
+            "# Reviewer Agent\nUse when testing agent discovery.\n\nmodel: sonnet\ntools: Read, Grep",
+        )
+        .expect("write agent");
+        fs::write(
+            codex_plugin.join("plugin.json"),
+            r#"{"name":"demo-plugin","description":"Plugin fixture.","version":"0.1.0"}"#,
+        )
+        .expect("write plugin");
+        fs::write(
+            mcp_configs.join("demo.json"),
+            r#"{"mcpServers":{"demo":{"command":"node","args":["server.js"]}}}"#,
+        )
+        .expect("write mcp config");
+
+        let report = scan_local_extensions(Some(ScanOptions {
+            include_plugin_caches: false,
+            mcp_probe_policy: Some("disabled".to_string()),
+            scan_roots: Some(vec![
+                home.join(".codex")
+                    .join("skills")
+                    .to_string_lossy()
+                    .to_string(),
+                home.join(".claude")
+                    .join("commands")
+                    .to_string_lossy()
+                    .to_string(),
+                home.join(".claude")
+                    .join("agents")
+                    .to_string_lossy()
+                    .to_string(),
+                home.join(".codex")
+                    .join("plugins")
+                    .to_string_lossy()
+                    .to_string(),
+                home.join(".claude")
+                    .join("mcp-configs")
+                    .to_string_lossy()
+                    .to_string(),
+            ]),
+        }));
+
+        assert_eq!(report["schemaVersion"], "0.1");
+        assert!(report["totals"]["skills"].as_u64().unwrap_or_default() >= 1);
+        assert!(report["totals"]["commands"].as_u64().unwrap_or_default() >= 1);
+        assert!(report["totals"]["agents"].as_u64().unwrap_or_default() >= 1);
+        assert!(report["totals"]["plugins"].as_u64().unwrap_or_default() >= 1);
+        assert!(report["totals"]["mcpServers"].as_u64().unwrap_or_default() >= 1);
+
+        fs::remove_dir_all(home).expect("remove local scan fixture dir");
+    }
+
     fn unique_test_dir(name: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
