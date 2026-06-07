@@ -77,3 +77,11 @@ export function saveCachedReport(report: ScanReport, storage = safeStorage()) {
     // Ignore storage failures; the live scan result remains visible.
   }
 }
+
+export function clearCachedReport(storage = safeStorage()) {
+  try {
+    storage?.removeItem(cacheKey)
+  } catch {
+    // Ignore storage failures; the current session can still reset in memory.
+  }
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  clearCachedReport,
   loadCachedReport,
   loadLocale,
   saveCachedReport,
@@ -43,6 +44,15 @@ describe('app cache', () => {
     expect(loadCachedReport(storage)?.totals.entities).toBe(
       fixtureScanReport.totals.entities,
     )
+  })
+
+  it('clears cached scan reports', () => {
+    const storage = createStorage()
+
+    saveCachedReport(fixtureScanReport, storage)
+    clearCachedReport(storage)
+
+    expect(loadCachedReport(storage)).toBeUndefined()
   })
 
   it('clears invalid cached scan reports', () => {

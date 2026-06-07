@@ -20,6 +20,8 @@ type AppCopy = {
     languageButton: string
     exportSuccess: string
     exportError: string
+    clearCacheButton: string
+    cacheCleared: string
     summary: {
       totalExtensions: string
       needsReview: string
@@ -145,6 +147,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       languageButton: 'English',
       exportSuccess: '报告已导出',
       exportError: '导出失败',
+      clearCacheButton: '清除缓存报告',
+      cacheCleared: '缓存报告已清除，当前显示示例数据。',
       summary: {
         totalExtensions: '扩展总数',
         needsReview: '需要复查',
@@ -271,6 +275,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       languageButton: '中文',
       exportSuccess: 'Report exported',
       exportError: 'Export failed',
+      clearCacheButton: 'Clear cached report',
+      cacheCleared: 'Cached report cleared. Fixture data is now shown.',
       summary: {
         totalExtensions: 'Total extensions',
         needsReview: 'Needs review',

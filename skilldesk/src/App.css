@@ -464,6 +464,12 @@ tbody tr:hover,
   overflow-wrap: anywhere;
 }
 
+.settings-actions {
+  border-top: 1px solid var(--border);
+  margin-top: 18px;
+  padding-top: 18px;
+}
+
 dt {
   color: var(--muted);
   font-size: 12px;

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 
 import {
+  clearCachedReport,
   loadCachedReport,
   loadLocale,
   saveCachedReport,
@@ -212,6 +213,15 @@ function App() {
     }
   }
 
+  function clearReportCache() {
+    clearCachedReport()
+    setReport(fixtureScanReport)
+    setSelectedEntityId(fixtureScanReport.entities[0]?.id ?? '')
+    setScanState('fixture')
+    setScanError('')
+    setExportMessage(copy.dashboard.cacheCleared)
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="Primary navigation">
@@ -324,6 +334,7 @@ function App() {
             copy={copy}
             locale={locale}
             settings={defaultAppSettings}
+            onClearCache={clearReportCache}
           />
         )}
       </section>
@@ -770,10 +781,12 @@ function SettingsView({
   copy,
   locale,
   settings,
+  onClearCache,
 }: {
   copy: typeof appCopy['zh-CN']
   locale: Locale
   settings: AppSettings
+  onClearCache: () => void
 }) {
   return (
     <section className="table-panel">
@@ -812,6 +825,11 @@ function SettingsView({
           <dd>{copy.views.scanSafetyBody}</dd>
         </div>
       </dl>
+      <div className="settings-actions">
+        <button type="button" className="secondary-button" onClick={onClearCache}>
+          {copy.dashboard.clearCacheButton}
+        </button>
+      </div>
     </section>
   )
 }
