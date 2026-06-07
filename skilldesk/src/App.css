@@ -394,6 +394,52 @@ button:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.plugin-card-list {
+  display: grid;
+  gap: 12px;
+}
+
+.plugin-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 14px;
+}
+
+.plugin-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.plugin-card h4 {
+  color: var(--text-h);
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+
+.plugin-card header span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.plugin-meta {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.plugin-meta div {
+  min-width: 0;
+}
+
+.plugin-meta dd {
+  overflow-wrap: anywhere;
+}
+
 .empty-state {
   border-top: 1px solid var(--border);
   color: var(--muted);
@@ -647,6 +693,10 @@ code {
   }
 
   .mcp-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .plugin-meta {
     grid-template-columns: 1fr;
   }
 

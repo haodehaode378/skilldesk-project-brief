@@ -68,6 +68,15 @@ type AppCopy = {
     args: string
     host: string
     tools: string
+    version: string
+    publisher: string
+    cache: string
+    backup: string
+    yes: string
+    no: string
+    commands: string
+    agents: string
+    manifest: string
     resources: string
     prompts: string
     probe: string
@@ -205,6 +214,15 @@ export const appCopy: Record<Locale, AppCopy> = {
       args: '参数',
       host: 'Host',
       tools: '工具',
+      version: '版本',
+      publisher: '发布者',
+      cache: '缓存',
+      backup: '备份',
+      yes: '是',
+      no: '否',
+      commands: '命令',
+      agents: 'Agents',
+      manifest: 'Manifest',
       resources: '资源',
       prompts: 'Prompts',
       probe: '探测',
@@ -341,6 +359,15 @@ export const appCopy: Record<Locale, AppCopy> = {
       args: 'Args',
       host: 'Host',
       tools: 'Tools',
+      version: 'Version',
+      publisher: 'Publisher',
+      cache: 'Cache',
+      backup: 'Backup',
+      yes: 'Yes',
+      no: 'No',
+      commands: 'Commands',
+      agents: 'Agents',
+      manifest: 'Manifest',
       resources: 'Resources',
       prompts: 'Prompts',
       probe: 'Probe',

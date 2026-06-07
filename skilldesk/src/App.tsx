@@ -617,30 +617,61 @@ function PluginsView({
     <section className="table-panel">
       <SectionHeading title={copy.views.pluginsTitle} body={copy.views.readOnlyNotice} />
       {plugins.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>{copy.labels.name}</th>
-              <th>{copy.labels.source}</th>
-              <th>Skills</th>
-              <th>MCP</th>
-              <th>{copy.labels.status}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {plugins.map((plugin) => (
-              <tr key={plugin.id}>
-                <td>{plugin.name}</td>
-                <td>{plugin.source}</td>
-                <td>{plugin.kind === 'plugin' ? plugin.bundled.skills : '-'}</td>
-                <td>{plugin.kind === 'plugin' ? plugin.bundled.mcpServers : '-'}</td>
-                <td>
-                  <StatusBadge copy={copy} status={plugin.health.status} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="plugin-card-list">
+          {plugins.map((plugin) => (
+            <article key={plugin.id} className="plugin-card">
+              <header>
+                <div>
+                  <h4>{plugin.title ?? plugin.name}</h4>
+                  <span>{plugin.source}</span>
+                </div>
+                <StatusBadge copy={copy} status={plugin.health.status} />
+              </header>
+              <dl className="plugin-meta">
+                <div>
+                  <dt>{copy.labels.version}</dt>
+                  <dd>{plugin.version ?? '-'}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.publisher}</dt>
+                  <dd>{plugin.publisher ?? '-'}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.cache}</dt>
+                  <dd>{plugin.cache.isCache ? copy.labels.yes : copy.labels.no}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.backup}</dt>
+                  <dd>{plugin.cache.isBackup ? copy.labels.yes : copy.labels.no}</dd>
+                </div>
+                <div>
+                  <dt>Skills</dt>
+                  <dd>{plugin.bundled.skills}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.commands}</dt>
+                  <dd>{plugin.bundled.commands}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.agents}</dt>
+                  <dd>{plugin.bundled.agents}</dd>
+                </div>
+                <div>
+                  <dt>MCP</dt>
+                  <dd>{plugin.bundled.mcpServers}</dd>
+                </div>
+                <div>
+                  <dt>Hooks</dt>
+                  <dd>{plugin.bundled.hooks}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.manifest}</dt>
+                  <dd className="path-cell">{plugin.manifestPath ?? '-'}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+        </div>
       ) : (
         <EmptyState message={copy.labels.emptyPlugins} />
       )}
