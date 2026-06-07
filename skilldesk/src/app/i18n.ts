@@ -64,7 +64,15 @@ type AppCopy = {
     issues: string
     path: string
     transport: string
+    command: string
+    args: string
+    host: string
     tools: string
+    resources: string
+    prompts: string
+    probe: string
+    probeAttempted: string
+    probeSkipped: string
     roots: string
     scanned: string
     missing: string
@@ -193,7 +201,15 @@ export const appCopy: Record<Locale, AppCopy> = {
       issues: '问题',
       path: '路径',
       transport: '传输',
+      command: '命令',
+      args: '参数',
+      host: 'Host',
       tools: '工具',
+      resources: '资源',
+      prompts: 'Prompts',
+      probe: '探测',
+      probeAttempted: '已记录',
+      probeSkipped: '未主动探测',
       roots: '扫描来源',
       scanned: '已扫描',
       missing: '缺失',
@@ -321,7 +337,15 @@ export const appCopy: Record<Locale, AppCopy> = {
       issues: 'Issues',
       path: 'Path',
       transport: 'Transport',
+      command: 'Command',
+      args: 'Args',
+      host: 'Host',
       tools: 'Tools',
+      resources: 'Resources',
+      prompts: 'Prompts',
+      probe: 'Probe',
+      probeAttempted: 'Recorded',
+      probeSkipped: 'Not actively probed',
       roots: 'Scan roots',
       scanned: 'Scanned',
       missing: 'Missing',

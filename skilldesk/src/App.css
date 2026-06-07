@@ -348,6 +348,52 @@ button:focus-visible {
   text-align: right;
 }
 
+.mcp-card-list {
+  display: grid;
+  gap: 12px;
+}
+
+.mcp-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 14px;
+}
+
+.mcp-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.mcp-card h4 {
+  color: var(--text-h);
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+
+.mcp-card header span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mcp-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.mcp-meta div {
+  min-width: 0;
+}
+
+.mcp-meta dd {
+  overflow-wrap: anywhere;
+}
+
 .empty-state {
   border-top: 1px solid var(--border);
   color: var(--muted);
@@ -597,6 +643,10 @@ code {
   }
 
   .report-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .mcp-meta {
     grid-template-columns: 1fr;
   }
 

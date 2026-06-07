@@ -546,30 +546,57 @@ function McpView({
     <section className="table-panel">
       <SectionHeading title={copy.views.mcpTitle} body={copy.views.readOnlyNotice} />
       {servers.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>{copy.labels.name}</th>
-              <th>{copy.labels.transport}</th>
-              <th>{copy.labels.status}</th>
-              <th>{copy.labels.tools}</th>
-              <th>{copy.labels.path}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {servers.map((server) => (
-              <tr key={server.id}>
-                <td>{server.name}</td>
-                <td>{server.kind === 'mcp-server' ? server.transport : ''}</td>
-                <td>
-                  <StatusBadge copy={copy} status={server.health.status} />
-                </td>
-                <td>{server.kind === 'mcp-server' ? (server.probe?.toolsCount ?? '-') : '-'}</td>
-                <td className="path-cell">{server.path}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="mcp-card-list">
+          {servers.map((server) => (
+            <article key={server.id} className="mcp-card">
+              <header>
+                <div>
+                  <h4>{server.title ?? server.name}</h4>
+                  <span>{server.transport}</span>
+                </div>
+                <StatusBadge copy={copy} status={server.health.status} />
+              </header>
+              <dl className="mcp-meta">
+                <div>
+                  <dt>{copy.labels.command}</dt>
+                  <dd className="path-cell">{server.command ?? '-'}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.args}</dt>
+                  <dd>{server.argsCount ?? '-'}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.host}</dt>
+                  <dd>{server.urlHost ?? '-'}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.tools}</dt>
+                  <dd>{server.probe?.toolsCount ?? '-'}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.resources}</dt>
+                  <dd>{server.probe?.resourcesCount ?? '-'}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.prompts}</dt>
+                  <dd>{server.probe?.promptsCount ?? '-'}</dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.probe}</dt>
+                  <dd>
+                    {server.probe?.attempted
+                      ? copy.labels.probeAttempted
+                      : copy.labels.probeSkipped}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{copy.labels.path}</dt>
+                  <dd className="path-cell">{server.configPath}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+        </div>
       ) : (
         <EmptyState message={copy.labels.emptyMcp} />
       )}
