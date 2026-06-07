@@ -11,7 +11,14 @@ import { appCopy, nextLocale } from './app/i18n'
 import './App.css'
 import { fixtureScanReport } from './fixtures'
 import { scanReportSchema } from './model'
-import type { EntityKind, HealthStatus, Locale, ManagedEntity, ScanReport } from './model'
+import type {
+  EntityKind,
+  HealthStatus,
+  IssueSeverity,
+  Locale,
+  ManagedEntity,
+  ScanReport,
+} from './model'
 
 type ViewKey =
   | 'overview'
@@ -33,6 +40,7 @@ const viewOrder: ViewKey[] = [
 ]
 
 type StatusFilter = HealthStatus | 'all'
+type IssueSeverityFilter = IssueSeverity | 'all'
 
 const statusFilters: StatusFilter[] = [
   'all',
@@ -40,6 +48,14 @@ const statusFilters: StatusFilter[] = [
   'needs-review',
   'at-risk',
   'broken',
+]
+
+const issueSeverityFilters: IssueSeverityFilter[] = [
+  'all',
+  'info',
+  'low',
+  'medium',
+  'high',
 ]
 
 const navKeyByView: Record<ViewKey, keyof typeof appCopy['zh-CN']['nav']> = {
@@ -63,6 +79,17 @@ function formatStatus(status: HealthStatus, copy: typeof appCopy['zh-CN']) {
   return labels[status]
 }
 
+function formatSeverity(severity: IssueSeverity, copy: typeof appCopy['zh-CN']) {
+  const labels: Record<IssueSeverity, string> = {
+    info: copy.labels.severityInfo,
+    low: copy.labels.severityLow,
+    medium: copy.labels.severityMedium,
+    high: copy.labels.severityHigh,
+  }
+
+  return labels[severity]
+}
+
 function formatKind(kind: EntityKind) {
   return kind.replace('-', ' ')
 }
@@ -81,6 +108,9 @@ function App() {
   const [exportMessage, setExportMessage] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [extensionQuery, setExtensionQuery] = useState('')
+  const [issueSeverityFilter, setIssueSeverityFilter] =
+    useState<IssueSeverityFilter>('all')
+  const [issueQuery, setIssueQuery] = useState('')
   const [selectedEntityId, setSelectedEntityId] = useState(
     (initialCachedReport ?? fixtureScanReport).entities[0]?.id ?? '',
   )
@@ -216,7 +246,16 @@ function App() {
           <PluginsView copy={copy} entities={report.entities} />
         )}
         {activeView === 'sources' && <SourcesView copy={copy} report={report} />}
-        {activeView === 'issues' && <IssuesView copy={copy} report={report} />}
+        {activeView === 'issues' && (
+          <IssuesView
+            copy={copy}
+            report={report}
+            severityFilter={issueSeverityFilter}
+            onSeverityFilterChange={setIssueSeverityFilter}
+            query={issueQuery}
+            onQueryChange={setIssueQuery}
+          />
+        )}
         {activeView === 'settings' && (
           <SettingsView copy={copy} locale={locale} />
         )}
@@ -499,27 +538,76 @@ function SourcesView({
 function IssuesView({
   copy,
   report,
+  severityFilter,
+  onSeverityFilterChange,
+  query,
+  onQueryChange,
 }: {
   copy: typeof appCopy['zh-CN']
   report: ScanReport
+  severityFilter: IssueSeverityFilter
+  onSeverityFilterChange: (severity: IssueSeverityFilter) => void
+  query: string
+  onQueryChange: (query: string) => void
 }) {
+  const normalizedQuery = query.trim().toLowerCase()
+  const filteredIssues = report.issues.filter((issue) => {
+    const matchesSeverity =
+      severityFilter === 'all' || issue.severity === severityFilter
+    const searchable = [
+      issue.severity,
+      issue.category,
+      issue.message,
+      issue.file,
+      issue.recommendation,
+      issue.evidence,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+    const matchesQuery =
+      normalizedQuery.length === 0 || searchable.includes(normalizedQuery)
+
+    return matchesSeverity && matchesQuery
+  })
+  const resultCount = copy.labels.resultCount
+    .replace('{shown}', String(filteredIssues.length))
+    .replace('{total}', String(report.issues.length))
+
   return (
     <section className="table-panel">
       <SectionHeading title={copy.views.issuesTitle} body={copy.views.readOnlyNotice} />
-      {report.issues.length > 0 ? (
+      <div className="table-tools">
+        <label className="search-field">
+          <span>{copy.labels.searchIssues}</span>
+          <input
+            type="search"
+            value={query}
+            placeholder={copy.labels.searchIssues}
+            onChange={(event) => onQueryChange(event.target.value)}
+          />
+        </label>
+        <span className="result-count">{resultCount}</span>
+      </div>
+      <IssueSeverityFilterBar
+        copy={copy}
+        activeSeverity={severityFilter}
+        onChange={onSeverityFilterChange}
+      />
+      {filteredIssues.length > 0 ? (
         <table>
           <thead>
             <tr>
-              <th>{copy.labels.status}</th>
+              <th>{copy.labels.severity}</th>
               <th>{copy.labels.kind}</th>
               <th>{copy.labels.issues}</th>
               <th>{copy.labels.path}</th>
             </tr>
           </thead>
           <tbody>
-            {report.issues.map((issue) => (
+            {filteredIssues.map((issue) => (
               <tr key={issue.id}>
-                <td>{issue.severity}</td>
+                <td>{formatSeverity(issue.severity, copy)}</td>
                 <td>{issue.category}</td>
                 <td>{issue.message}</td>
                 <td className="path-cell">{issue.file ?? '-'}</td>
@@ -528,7 +616,13 @@ function IssuesView({
           </tbody>
         </table>
       ) : (
-        <EmptyState message={copy.labels.emptyIssues} />
+        <EmptyState
+          message={
+            report.issues.length > 0
+              ? copy.labels.emptyFilteredIssues
+              : copy.labels.emptyIssues
+          }
+        />
       )}
     </section>
   )
@@ -747,6 +841,34 @@ function StatusFilterBar({
           onClick={() => onChange(status)}
         >
           {status === 'all' ? copy.labels.allStatuses : formatStatus(status, copy)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function IssueSeverityFilterBar({
+  copy,
+  activeSeverity,
+  onChange,
+}: {
+  copy: typeof appCopy['zh-CN']
+  activeSeverity: IssueSeverityFilter
+  onChange: (severity: IssueSeverityFilter) => void
+}) {
+  return (
+    <div className="filter-bar" aria-label={copy.labels.severity}>
+      {issueSeverityFilters.map((severity) => (
+        <button
+          key={severity}
+          type="button"
+          className="filter-button"
+          aria-pressed={activeSeverity === severity}
+          onClick={() => onChange(severity)}
+        >
+          {severity === 'all'
+            ? copy.labels.allSeverities
+            : formatSeverity(severity, copy)}
         </button>
       ))}
     </div>

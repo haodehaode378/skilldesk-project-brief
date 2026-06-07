@@ -41,6 +41,7 @@ type AppCopy = {
     platform: string
     source: string
     status: string
+    severity: string
     issues: string
     path: string
     transport: string
@@ -58,13 +59,20 @@ type AppCopy = {
     statusAtRisk: string
     statusBroken: string
     allStatuses: string
+    severityInfo: string
+    severityLow: string
+    severityMedium: string
+    severityHigh: string
+    allSeverities: string
     search: string
+    searchIssues: string
     resultCount: string
     emptyExtensions: string
     emptyMcp: string
     emptyPlugins: string
     emptySources: string
     emptyIssues: string
+    emptyFilteredIssues: string
   }
   views: {
     extensionsTitle: string
@@ -127,6 +135,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       platform: '平台',
       source: '来源',
       status: '状态',
+      severity: '严重级别',
       issues: '问题',
       path: '路径',
       transport: '传输',
@@ -144,13 +153,20 @@ export const appCopy: Record<Locale, AppCopy> = {
       statusAtRisk: '有风险',
       statusBroken: '已损坏',
       allStatuses: '全部状态',
+      severityInfo: '提示',
+      severityLow: '低',
+      severityMedium: '中',
+      severityHigh: '高',
+      allSeverities: '全部级别',
       search: '搜索扩展',
+      searchIssues: '搜索问题',
       resultCount: '显示 {shown} / {total}',
       emptyExtensions: '没有发现符合条件的扩展。',
       emptyMcp: '没有发现 MCP 服务配置。',
       emptyPlugins: '没有发现插件 manifest。',
       emptySources: '没有扫描来源记录。',
       emptyIssues: '当前扫描没有发现问题。',
+      emptyFilteredIssues: '没有发现符合条件的问题。',
     },
     views: {
       extensionsTitle: '扩展清单',
@@ -211,6 +227,7 @@ export const appCopy: Record<Locale, AppCopy> = {
       platform: 'Platform',
       source: 'Source',
       status: 'Status',
+      severity: 'Severity',
       issues: 'Issues',
       path: 'Path',
       transport: 'Transport',
@@ -228,13 +245,20 @@ export const appCopy: Record<Locale, AppCopy> = {
       statusAtRisk: 'At risk',
       statusBroken: 'Broken',
       allStatuses: 'All statuses',
+      severityInfo: 'Info',
+      severityLow: 'Low',
+      severityMedium: 'Medium',
+      severityHigh: 'High',
+      allSeverities: 'All severities',
       search: 'Search extensions',
+      searchIssues: 'Search issues',
       resultCount: 'Showing {shown} / {total}',
       emptyExtensions: 'No extensions match the current filters.',
       emptyMcp: 'No MCP server configurations were found.',
       emptyPlugins: 'No plugin manifests were found.',
       emptySources: 'No scan roots were recorded.',
       emptyIssues: 'No issues were found in the current scan.',
+      emptyFilteredIssues: 'No issues match the current filters.',
     },
     views: {
       extensionsTitle: 'Extension inventory',
