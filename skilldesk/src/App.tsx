@@ -3,8 +3,10 @@ import { invoke } from '@tauri-apps/api/core'
 
 import {
   clearCachedReport,
+  loadAppSettings,
   loadCachedReport,
   loadLocale,
+  saveAppSettings,
   saveCachedReport,
   saveLocale,
 } from './app/cache'
@@ -12,7 +14,7 @@ import { buildExportPayload, type ReportSource } from './app/exportReport'
 import { appCopy, nextLocale } from './app/i18n'
 import './App.css'
 import { fixtureScanReport } from './fixtures'
-import { defaultAppSettings, scanReportSchema } from './model'
+import { scanReportSchema } from './model'
 import type {
   AppSettings,
   EntityKind,
@@ -167,7 +169,7 @@ function App() {
     useState<IssueSeverityFilter>('all')
   const [issueQuery, setIssueQuery] = useState('')
   const [settings, setSettings] = useState<AppSettings>(() => ({
-    ...defaultAppSettings,
+    ...loadAppSettings(),
     locale,
   }))
   const [selectedEntityId, setSelectedEntityId] = useState(
@@ -183,6 +185,11 @@ function App() {
     const next = nextLocale(locale)
     setLocale(next)
     saveLocale(next)
+    setSettings((current) => {
+      const nextSettings = { ...current, locale: next }
+      saveAppSettings(nextSettings)
+      return nextSettings
+    })
   }
 
   async function scanLocalRoots() {
@@ -350,9 +357,13 @@ function App() {
             copy={copy}
             locale={locale}
             settings={settings}
-            onIncludePluginCachesChange={(includePluginCaches) =>
-              setSettings((current) => ({ ...current, includePluginCaches }))
-            }
+            onIncludePluginCachesChange={(includePluginCaches) => {
+              setSettings((current) => {
+                const nextSettings = { ...current, includePluginCaches }
+                saveAppSettings(nextSettings)
+                return nextSettings
+              })
+            }}
             onLocaleToggle={toggleLocale}
             onClearCache={clearReportCache}
           />

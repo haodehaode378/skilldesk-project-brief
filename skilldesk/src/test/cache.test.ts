@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import {
   clearCachedReport,
+  loadAppSettings,
   loadCachedReport,
   loadLocale,
+  saveAppSettings,
   saveCachedReport,
   saveLocale,
 } from '../app/cache'
@@ -34,6 +36,35 @@ describe('app cache', () => {
     saveLocale('en-US', storage)
 
     expect(loadLocale(storage)).toBe('en-US')
+  })
+
+  it('saves and loads app settings', () => {
+    const storage = createStorage()
+
+    saveAppSettings(
+      {
+        locale: 'en-US',
+        scanRoots: ['%USERPROFILE%\\.codex\\skills'],
+        includePluginCaches: true,
+        mcpProbePolicy: 'disabled',
+      },
+      storage,
+    )
+
+    expect(loadAppSettings(storage)).toEqual({
+      locale: 'en-US',
+      scanRoots: ['%USERPROFILE%\\.codex\\skills'],
+      includePluginCaches: true,
+      mcpProbePolicy: 'disabled',
+    })
+  })
+
+  it('clears invalid app settings', () => {
+    const storage = createStorage()
+    storage.setItem('skilldesk.settings', '{bad json')
+
+    expect(loadAppSettings(storage).locale).toBe('zh-CN')
+    expect(storage.getItem('skilldesk.settings')).toBeNull()
   })
 
   it('saves and loads the latest scan report', () => {

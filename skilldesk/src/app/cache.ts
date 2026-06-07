@@ -1,8 +1,10 @@
 import {
   defaultAppSettings,
+  appSettingsSchema,
   localeSchema,
   scanReportSchema,
   skillDeskCacheSchema,
+  type AppSettings,
   type Locale,
   type ScanReport,
   type SkillDeskCache,
@@ -10,6 +12,7 @@ import {
 
 const localeKey = 'skilldesk.locale'
 const cacheKey = 'skilldesk.lastReport'
+const settingsKey = 'skilldesk.settings'
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
@@ -40,6 +43,35 @@ export function loadLocale(storage = safeStorage()): Locale {
 export function saveLocale(locale: Locale, storage = safeStorage()) {
   try {
     storage?.setItem(localeKey, locale)
+  } catch {
+    // Ignore storage failures; settings still work for the current session.
+  }
+}
+
+export function loadAppSettings(storage = safeStorage()): AppSettings {
+  const rawSettings = storage?.getItem(settingsKey)
+  if (!rawSettings) {
+    return defaultAppSettings
+  }
+
+  try {
+    return appSettingsSchema.parse({
+      ...defaultAppSettings,
+      ...JSON.parse(rawSettings),
+    })
+  } catch {
+    try {
+      storage?.removeItem(settingsKey)
+    } catch {
+      // Ignore storage failures; invalid settings simply won't be used.
+    }
+    return defaultAppSettings
+  }
+}
+
+export function saveAppSettings(settings: AppSettings, storage = safeStorage()) {
+  try {
+    storage?.setItem(settingsKey, JSON.stringify(appSettingsSchema.parse(settings)))
   } catch {
     // Ignore storage failures; settings still work for the current session.
   }
