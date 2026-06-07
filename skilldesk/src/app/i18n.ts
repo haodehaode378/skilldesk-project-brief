@@ -46,6 +46,13 @@ type AppCopy = {
     transport: string
     tools: string
     roots: string
+    git: string
+    gitRoot: string
+    branch: string
+    commit: string
+    remote: string
+    dirty: string
+    clean: string
     statusOk: string
     statusNeedsReview: string
     statusAtRisk: string
@@ -123,6 +130,13 @@ export const appCopy: Record<Locale, AppCopy> = {
       transport: '传输',
       tools: '工具',
       roots: '扫描来源',
+      git: 'Git',
+      gitRoot: '仓库',
+      branch: '分支',
+      commit: '提交',
+      remote: '远程',
+      dirty: '有未提交变化',
+      clean: '干净',
       statusOk: '正常',
       statusNeedsReview: '需要复查',
       statusAtRisk: '有风险',
@@ -198,6 +212,13 @@ export const appCopy: Record<Locale, AppCopy> = {
       transport: 'Transport',
       tools: 'Tools',
       roots: 'Scan roots',
+      git: 'Git',
+      gitRoot: 'Repository',
+      branch: 'Branch',
+      commit: 'Commit',
+      remote: 'Remote',
+      dirty: 'Dirty',
+      clean: 'Clean',
       statusOk: 'OK',
       statusNeedsReview: 'Needs review',
       statusAtRisk: 'At risk',

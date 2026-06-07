@@ -640,6 +640,33 @@ function DetailPanel({
           <dd className="path-cell">{entity.path}</dd>
         </div>
       </dl>
+      {entity.git && (
+        <>
+          <SectionHeading title={copy.labels.git} />
+          <dl>
+            <div>
+              <dt>{copy.labels.gitRoot}</dt>
+              <dd className="path-cell">{entity.git.root}</dd>
+            </div>
+            <div>
+              <dt>{copy.labels.branch}</dt>
+              <dd>{entity.git.branch ?? (entity.git.detached ? 'detached' : '-')}</dd>
+            </div>
+            <div>
+              <dt>{copy.labels.commit}</dt>
+              <dd className="path-cell">{entity.git.commit ?? '-'}</dd>
+            </div>
+            <div>
+              <dt>{copy.labels.remote}</dt>
+              <dd className="path-cell">{entity.git.remoteUrl ?? '-'}</dd>
+            </div>
+            <div>
+              <dt>{copy.labels.status}</dt>
+              <dd>{entity.git.dirty ? copy.labels.dirty : copy.labels.clean}</dd>
+            </div>
+          </dl>
+        </>
+      )}
       <ul className="issue-list">
         {entity.health.issues.map((issue) => (
           <li key={issue.id}>
