@@ -58,6 +58,8 @@ type AppCopy = {
     statusAtRisk: string
     statusBroken: string
     allStatuses: string
+    search: string
+    resultCount: string
     emptyExtensions: string
     emptyMcp: string
     emptyPlugins: string
@@ -142,6 +144,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       statusAtRisk: '有风险',
       statusBroken: '已损坏',
       allStatuses: '全部状态',
+      search: '搜索扩展',
+      resultCount: '显示 {shown} / {total}',
       emptyExtensions: '没有发现符合条件的扩展。',
       emptyMcp: '没有发现 MCP 服务配置。',
       emptyPlugins: '没有发现插件 manifest。',
@@ -224,6 +228,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       statusAtRisk: 'At risk',
       statusBroken: 'Broken',
       allStatuses: 'All statuses',
+      search: 'Search extensions',
+      resultCount: 'Showing {shown} / {total}',
       emptyExtensions: 'No extensions match the current filters.',
       emptyMcp: 'No MCP server configurations were found.',
       emptyPlugins: 'No plugin manifests were found.',

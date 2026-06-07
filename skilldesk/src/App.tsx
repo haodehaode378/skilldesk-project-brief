@@ -80,6 +80,7 @@ function App() {
   const [scanError, setScanError] = useState('')
   const [exportMessage, setExportMessage] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [extensionQuery, setExtensionQuery] = useState('')
   const [selectedEntityId, setSelectedEntityId] = useState(
     (initialCachedReport ?? fixtureScanReport).entities[0]?.id ?? '',
   )
@@ -202,6 +203,8 @@ function App() {
             entities={report.entities}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            query={extensionQuery}
+            onQueryChange={setExtensionQuery}
             selectedEntityId={selectedEntity?.id}
             onSelect={setSelectedEntityId}
           />
@@ -289,6 +292,8 @@ function ExtensionsView({
   entities,
   statusFilter,
   onStatusFilterChange,
+  query,
+  onQueryChange,
   selectedEntityId,
   onSelect,
 }: {
@@ -296,21 +301,54 @@ function ExtensionsView({
   entities: ManagedEntity[]
   statusFilter: StatusFilter
   onStatusFilterChange: (status: StatusFilter) => void
+  query: string
+  onQueryChange: (query: string) => void
   selectedEntityId?: string
   onSelect: (id: string) => void
 }) {
-  const filteredEntities =
-    statusFilter === 'all'
-      ? entities
-      : entities.filter((entity) => entity.health.status === statusFilter)
+  const normalizedQuery = query.trim().toLowerCase()
+  const filteredEntities = entities.filter((entity) => {
+    const matchesStatus =
+      statusFilter === 'all' || entity.health.status === statusFilter
+    const searchable = [
+      entity.name,
+      entity.title,
+      entity.kind,
+      entity.platform,
+      entity.source,
+      entity.path,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+    const matchesQuery =
+      normalizedQuery.length === 0 || searchable.includes(normalizedQuery)
+
+    return matchesStatus && matchesQuery
+  })
   const selectedEntity =
     filteredEntities.find((entity) => entity.id === selectedEntityId) ??
     filteredEntities[0]
+  const resultCount = copy.labels.resultCount
+    .replace('{shown}', String(filteredEntities.length))
+    .replace('{total}', String(entities.length))
 
   return (
     <section className="content-grid">
       <div className="table-panel">
         <SectionHeading title={copy.views.extensionsTitle} body={copy.views.extensionsBody} />
+        <div className="table-tools">
+          <label className="search-field">
+            <span>{copy.labels.search}</span>
+            <input
+              type="search"
+              value={query}
+              placeholder={copy.labels.search}
+              onChange={(event) => onQueryChange(event.target.value)}
+            />
+          </label>
+          <span className="result-count">{resultCount}</span>
+        </div>
         <StatusFilterBar
           copy={copy}
           activeStatus={statusFilter}

@@ -208,6 +208,42 @@ button:focus-visible {
   color: var(--muted);
 }
 
+.table-tools {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+.search-field {
+  display: grid;
+  gap: 6px;
+  min-width: min(100%, 320px);
+}
+
+.search-field span,
+.result-count {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.search-field input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text-h);
+  font: inherit;
+  padding: 9px 10px;
+}
+
+.search-field input:focus {
+  border-color: var(--focus);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -382,6 +418,11 @@ code {
 
   .topbar-actions {
     justify-content: flex-start;
+  }
+
+  .table-tools {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .summary-grid {
