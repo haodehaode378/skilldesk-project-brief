@@ -144,4 +144,60 @@ describe('scanReportSchema', () => {
     expect(report.totals.commands).toBe(1)
     expect(report.totals.agents).toBe(1)
   })
+
+  it('accepts local scanner shaped instruction file entities', () => {
+    const report = scanReportSchema.parse({
+      schemaVersion: '0.1',
+      generatedAt: '2026-06-07T10:20:00Z',
+      machine: {
+        platform: 'win32',
+      },
+      roots: [
+        {
+          path: 'E:\\project\\AGENTS.md',
+          kind: 'file',
+          status: 'scanned',
+        },
+      ],
+      entities: [
+        {
+          id: 'instruction-file:shared:e--project-agents-md',
+          kind: 'instruction-file',
+          platform: 'shared',
+          name: 'AGENTS.md',
+          title: 'Project Agent Instructions',
+          description: 'Project rules for future coding agents.',
+          path: 'E:\\project\\AGENTS.md',
+          source: 'local',
+          tags: [],
+          discoveredAt: '2026-06-07T10:20:00Z',
+          health: {
+            status: 'ok',
+            issues: [],
+          },
+          fileType: 'AGENTS.md',
+          appliesToPath: 'E:\\project',
+          lineCount: 42,
+        },
+      ],
+      totals: {
+        entities: 1,
+        skills: 0,
+        commands: 0,
+        agents: 0,
+        plugins: 0,
+        mcpServers: 0,
+        instructionFiles: 1,
+        byStatus: {
+          ok: 1,
+          'needs-review': 0,
+          'at-risk': 0,
+          broken: 0,
+        },
+      },
+      issues: [],
+    })
+
+    expect(report.totals.instructionFiles).toBe(1)
+  })
 })

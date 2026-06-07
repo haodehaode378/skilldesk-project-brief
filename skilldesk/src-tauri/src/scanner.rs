@@ -1,5 +1,6 @@
 use serde_json::{json, Map, Value};
 use std::{
+    collections::HashSet,
     env, fs,
     path::{Path, PathBuf},
     time::SystemTime,
@@ -57,6 +58,11 @@ pub fn scan_local_extensions() -> Value {
             &mut issues,
         );
         register_directory_root(&home.join(".claude").join("mcp-configs"), &mut roots);
+        scan_instruction_files(home, &now, &mut roots, &mut entities);
+    }
+
+    if let Ok(current_dir) = env::current_dir() {
+        scan_instruction_files(&current_dir, &now, &mut roots, &mut entities);
     }
 
     let totals = calculate_totals(&entities);
@@ -75,6 +81,44 @@ pub fn scan_local_extensions() -> Value {
       "totals": totals,
       "issues": issues,
     })
+}
+
+fn scan_instruction_files(
+    start: &Path,
+    discovered_at: &str,
+    roots: &mut Vec<Value>,
+    entities: &mut Vec<Value>,
+) {
+    let mut seen = HashSet::new();
+    for dir in instruction_candidate_dirs(start) {
+        for file_name in ["AGENTS.md", "CLAUDE.md", ".mcp.json"] {
+            let file = dir.join(file_name);
+            let stable_id = stable_path_id(&file);
+            if !seen.insert(stable_id) {
+                continue;
+            }
+
+            if file.exists() && file.is_file() {
+                roots.push(root_result(&file, "file", "scanned", None));
+                entities.push(build_instruction_entity(&file, discovered_at));
+            }
+        }
+    }
+}
+
+fn instruction_candidate_dirs(start: &Path) -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    let mut current = Some(start);
+
+    for _ in 0..=4 {
+        let Some(dir) = current else {
+            break;
+        };
+        dirs.push(dir.to_path_buf());
+        current = dir.parent();
+    }
+
+    dirs
 }
 
 fn scan_markdown_root(
@@ -275,6 +319,35 @@ fn build_agent_entity(root: &Path, file: &Path, discovered_at: &str) -> Value {
     Value::Object(entity)
 }
 
+fn build_instruction_entity(file: &Path, discovered_at: &str) -> Value {
+    let name = file
+        .file_name()
+        .map(|value| value.to_string_lossy().to_string())
+        .unwrap_or_else(|| "instruction-file".to_string());
+    let content = fs::read_to_string(file).unwrap_or_default();
+    let (title, description) = parse_markdown_text(&content);
+    let health = instruction_health(&name, file, &content);
+    let applies_to_path = file
+        .parent()
+        .map(|value| value.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let mut entity = base_entity(
+        "instruction-file",
+        "shared",
+        &name,
+        file.parent().unwrap_or(file),
+        file,
+        discovered_at,
+        title,
+        description,
+        health,
+    );
+    entity.insert("fileType".to_string(), json!(instruction_file_type(&name)));
+    entity.insert("appliesToPath".to_string(), json!(applies_to_path));
+    entity.insert("lineCount".to_string(), json!(content.lines().count()));
+    Value::Object(entity)
+}
+
 fn build_skill_entity(root: &Path, skill_md: &Path, platform: &str, discovered_at: &str) -> Value {
     let skill_dir = skill_md.parent().unwrap_or(root);
     let name = skill_dir
@@ -395,6 +468,43 @@ fn base_entity(
     entity
 }
 
+fn instruction_health(name: &str, file: &Path, content: &str) -> Value {
+    let mut issues = Vec::new();
+
+    if content.trim().is_empty() {
+        issues.push(json!({
+          "id": issue_id("empty-instruction", file),
+          "severity": "medium",
+          "category": "format",
+          "message": format!("Instruction file '{}' is empty.", name),
+          "file": file.to_string_lossy(),
+          "recommendation": "Add concise project guidance or remove the empty file.",
+        }));
+    }
+
+    if content.len() > 200_000 {
+        issues.push(json!({
+          "id": issue_id("large-instruction", file),
+          "severity": "low",
+          "category": "size",
+          "message": format!("Instruction file '{}' is unusually large.", name),
+          "file": file.to_string_lossy(),
+          "recommendation": "Keep project instruction files focused so agents can load them reliably.",
+        }));
+    }
+
+    let status = if issues.is_empty() {
+        "ok"
+    } else {
+        "needs-review"
+    };
+
+    json!({
+      "status": status,
+      "issues": issues,
+    })
+}
+
 fn skill_health(name: &str, skill_md: &Path, content: &str, description: Option<&str>) -> Value {
     let mut issues = Vec::new();
 
@@ -510,12 +620,14 @@ fn calculate_totals(entities: &[Value]) -> Value {
     let mut skills = 0;
     let mut commands = 0;
     let mut agents = 0;
+    let mut instruction_files = 0;
 
     for entity in entities {
         match entity.get("kind").and_then(Value::as_str) {
             Some("skill") => skills += 1,
             Some("command") => commands += 1,
             Some("agent") => agents += 1,
+            Some("instruction-file") => instruction_files += 1,
             _ => {}
         }
 
@@ -539,7 +651,7 @@ fn calculate_totals(entities: &[Value]) -> Value {
       "agents": agents,
       "plugins": 0,
       "mcpServers": 0,
-      "instructionFiles": 0,
+      "instructionFiles": instruction_files,
       "byStatus": {
         "ok": ok,
         "needs-review": needs_review,
@@ -547,6 +659,15 @@ fn calculate_totals(entities: &[Value]) -> Value {
         "broken": broken,
       },
     })
+}
+
+fn instruction_file_type(name: &str) -> &str {
+    match name {
+        "AGENTS.md" => "AGENTS.md",
+        "CLAUDE.md" => "CLAUDE.md",
+        ".mcp.json" => ".mcp.json",
+        _ => "other",
+    }
 }
 
 fn file_stem(path: &Path, fallback: &str) -> String {
