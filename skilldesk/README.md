@@ -77,10 +77,10 @@ pnpm tauri build --debug
 
 ## 构建产物
 
-Debug 打包后会生成：
+正式打包后会生成：
 
 ```text
-src-tauri\target\debug\skilldesk.exe
-src-tauri\target\debug\bundle\msi\SkillDesk_0.1.0_x64_en-US.msi
-src-tauri\target\debug\bundle\nsis\SkillDesk_0.1.0_x64-setup.exe
+src-tauri\target\release\skilldesk.exe
+src-tauri\target\release\bundle\msi\SkillDesk_0.1.0_x64_en-US.msi
+src-tauri\target\release\bundle\nsis\SkillDesk_0.1.0_x64-setup.exe
 ```
