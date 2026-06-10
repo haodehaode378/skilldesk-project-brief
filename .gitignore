@@ -1,0 +1,4 @@
+# Local audit and scan outputs
+REPO_ROAST_REPORT.md
+scan-report-*.json
+skilldesk-report-*.json

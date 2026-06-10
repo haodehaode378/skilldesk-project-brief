@@ -155,7 +155,7 @@ fn scan_configured_root(
     if normalized.ends_with("\\.codex\\skills") {
         scan_skill_root(root, "codex", discovered_at, roots, entities, issues);
     } else if normalized.ends_with("\\.agents\\skills") {
-        scan_skill_root(root, "codex", discovered_at, roots, entities, issues);
+        scan_skill_root(root, "shared", discovered_at, roots, entities, issues);
     } else if normalized.ends_with("\\.claude\\skills") {
         scan_skill_root(root, "claude-code", discovered_at, roots, entities, issues);
     } else if normalized.ends_with("\\.claude\\commands") {
@@ -1242,6 +1242,37 @@ mod tests {
     }
 
     #[test]
+    fn configured_agents_skill_root_sets_shared_platform() {
+        let home = unique_test_dir("configured-agents-root");
+        let root = home.join(".agents").join("skills");
+        let skill = root.join("shared-skill");
+        fs::create_dir_all(&skill).expect("create shared skill dir");
+        fs::write(
+            skill.join("SKILL.md"),
+            "# Shared Skill\nUse when testing shared skill discovery.",
+        )
+        .expect("write shared skill");
+
+        let mut roots = Vec::new();
+        let mut entities = Vec::new();
+        let mut issues = Vec::new();
+        scan_configured_root(
+            &root,
+            "2026-06-07T00:00:00Z",
+            false,
+            "disabled",
+            &mut roots,
+            &mut entities,
+            &mut issues,
+        );
+
+        assert_eq!(entities.len(), 1);
+        assert_eq!(entities[0]["kind"], "skill");
+        assert_eq!(entities[0]["platform"], "shared");
+        fs::remove_dir_all(home).expect("remove configured agents root test dir");
+    }
+
+    #[test]
     fn unsupported_configured_root_is_skipped() {
         let root = unique_test_dir("unsupported-root");
         let mut roots = Vec::new();
@@ -1433,10 +1464,11 @@ fn base_entity(
     entity.insert("source".to_string(), json!("local"));
     entity.insert("tags".to_string(), json!([]));
     entity.insert("discoveredAt".to_string(), json!(discovered_at));
-    if let Some(value) = modified_iso(file) {
+    let (last_modified, fingerprint) = file_snapshot(file);
+    if let Some(value) = last_modified {
         entity.insert("lastModified".to_string(), json!(value));
     }
-    if let Some(value) = file_fingerprint(file) {
+    if let Some(value) = fingerprint {
         entity.insert("fingerprint".to_string(), json!(value));
     }
     entity.insert("health".to_string(), health);

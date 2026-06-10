@@ -357,15 +357,7 @@ pub(crate) fn should_skip_path(path: &Path) -> bool {
 
 pub(crate) fn file_fingerprint(path: &Path) -> Option<String> {
     let metadata = fs::metadata(path).ok()?;
-    Some(format!(
-        "size:{}:mtime:{}",
-        metadata.len(),
-        metadata
-            .modified()
-            .ok()
-            .and_then(epoch_seconds)
-            .unwrap_or_default()
-    ))
+    Some(fingerprint_from_metadata(&metadata))
 }
 
 pub(crate) fn modified_iso(path: &Path) -> Option<String> {
@@ -376,8 +368,33 @@ pub(crate) fn modified_iso(path: &Path) -> Option<String> {
         .map(iso_from_epoch_seconds)
 }
 
+pub(crate) fn file_snapshot(path: &Path) -> (Option<String>, Option<String>) {
+    let Some(metadata) = fs::metadata(path).ok() else {
+        return (None, None);
+    };
+    let modified = metadata
+        .modified()
+        .ok()
+        .and_then(epoch_seconds)
+        .map(iso_from_epoch_seconds);
+    let fingerprint = Some(fingerprint_from_metadata(&metadata));
+    (modified, fingerprint)
+}
+
 pub(crate) fn iso_now() -> String {
     iso_from_system_time(SystemTime::now())
+}
+
+fn fingerprint_from_metadata(metadata: &fs::Metadata) -> String {
+    format!(
+        "size:{}:mtime:{}",
+        metadata.len(),
+        metadata
+            .modified()
+            .ok()
+            .and_then(epoch_seconds)
+            .unwrap_or_default()
+    )
 }
 
 fn epoch_seconds(time: SystemTime) -> Option<u64> {
