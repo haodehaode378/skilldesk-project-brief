@@ -355,19 +355,6 @@ pub(crate) fn should_skip_path(path: &Path) -> bool {
         })
 }
 
-pub(crate) fn file_fingerprint(path: &Path) -> Option<String> {
-    let metadata = fs::metadata(path).ok()?;
-    Some(fingerprint_from_metadata(&metadata))
-}
-
-pub(crate) fn modified_iso(path: &Path) -> Option<String> {
-    fs::metadata(path)
-        .ok()
-        .and_then(|metadata| metadata.modified().ok())
-        .and_then(epoch_seconds)
-        .map(iso_from_epoch_seconds)
-}
-
 pub(crate) fn file_snapshot(path: &Path) -> (Option<String>, Option<String>) {
     let Some(metadata) = fs::metadata(path).ok() else {
         return (None, None);

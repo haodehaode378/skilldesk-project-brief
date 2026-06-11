@@ -1,15 +1,41 @@
 use serde_json::{json, Map, Value};
 use std::{
+    collections::HashMap,
     fs,
     path::{Path, PathBuf},
 };
 
-pub(crate) fn attach_git_state(entity: &mut Map<String, Value>, path: &Path) {
+#[derive(Default)]
+pub(crate) struct GitStateCache {
+    states: HashMap<PathBuf, Option<Value>>,
+    reads: usize,
+}
+
+impl GitStateCache {
+    fn git_state(&mut self, root: &Path) -> Option<Value> {
+        if !self.states.contains_key(root) {
+            self.reads += 1;
+            self.states.insert(root.to_path_buf(), read_git_state(root));
+        }
+        self.states.get(root).cloned().flatten()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn read_count(&self) -> usize {
+        self.reads
+    }
+}
+
+pub(crate) fn attach_git_state(
+    entity: &mut Map<String, Value>,
+    path: &Path,
+    cache: &mut GitStateCache,
+) {
     let Some(git_root) = find_git_root(path) else {
         return;
     };
 
-    let Some(git_state) = read_git_state(&git_root) else {
+    let Some(git_state) = cache.git_state(&git_root) else {
         return;
     };
 
@@ -126,6 +152,35 @@ mod tests {
         assert_eq!(state["branch"], "main");
         assert_eq!(state["commit"], "abc123");
         assert_eq!(state["remoteUrl"], "https://example.com/repo.git");
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn caches_git_state_for_same_root() {
+        let root = env::temp_dir().join(format!(
+            "skilldesk-git-cache-test-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let git_dir = root.join(".git");
+        let refs_dir = git_dir.join("refs").join("heads");
+        let nested = root.join("skills").join("one");
+        fs::create_dir_all(&refs_dir).unwrap();
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(git_dir.join("HEAD"), "ref: refs/heads/main\n").unwrap();
+        fs::write(refs_dir.join("main"), "abc123\n").unwrap();
+
+        let mut cache = GitStateCache::default();
+        let mut first = Map::new();
+        let mut second = Map::new();
+        attach_git_state(&mut first, &nested, &mut cache);
+        attach_git_state(&mut second, &root, &mut cache);
+
+        assert_eq!(cache.read_count(), 1);
+        assert_eq!(first["git"], second["git"]);
 
         fs::remove_dir_all(root).unwrap();
     }

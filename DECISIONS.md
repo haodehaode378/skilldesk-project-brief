@@ -66,11 +66,12 @@ Disallowed:
 
 ## D004: Scanner Core Is CLI-Friendly
 
-Decision: implement the scanner as a reusable TypeScript core with a CLI-compatible boundary.
+Decision: implement the scanner as a reusable Rust core with a CLI-compatible JSON boundary.
 
 Rationale:
 
 - The Tauri desktop app is the primary product, but scan logic should not be trapped in UI code.
+- Rust keeps local filesystem scanning close to the Tauri backend and avoids running local extension content through Node.
 - A CLI-compatible scanner enables JSON reports, tests, and future automation.
 - The same scan report should feed desktop UI, local web UI, and report export.
 

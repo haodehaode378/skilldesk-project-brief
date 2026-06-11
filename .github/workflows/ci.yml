@@ -35,6 +35,11 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Rust build outputs
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: skilldesk/src-tauri
+
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
