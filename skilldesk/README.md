@@ -1,7 +1,6 @@
 # SkillDesk
 
 SkillDesk 是一个 Windows-first、本地只读的 agent 扩展健康仪表盘。
-
 它用于盘点和审计本机 agent 生态中的：
 
 - Codex / `.agents` / Claude Code skills
@@ -63,7 +62,7 @@ pnpm tauri build --debug
 
 ## UI
 
-默认语言是中文。设置页和顶部操作区都可以在中文和英文之间切换。
+默认语言是中文。设置页和顶部操作区都可以在中文和 English 之间切换。
 
 主要视图：
 

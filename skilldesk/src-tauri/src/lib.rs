@@ -16,7 +16,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             scanner::scan_local_extensions,
-            exporter::export_scan_report
+            exporter::export_scan_report,
+            exporter::export_markdown_report
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

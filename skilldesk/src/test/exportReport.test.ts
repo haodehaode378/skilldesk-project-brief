@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildExportPayload } from '../app/exportReport'
+import { buildExportPayload, buildMarkdownReport } from '../app/exportReport'
 import { fixtureScanReport } from '../fixtures'
 import { defaultAppSettings } from '../model'
 
@@ -35,5 +35,21 @@ describe('buildExportPayload', () => {
       mcpProbePolicy: 'disabled',
     })
     expect(payload.scanReport).toBe(fixtureScanReport)
+  })
+
+  it('builds a readable Markdown report summary', () => {
+    const payload = buildExportPayload({
+      exportedAt: '2026-06-07T12:00:00.000Z',
+      report: fixtureScanReport,
+      reportSource: 'local',
+      settings: defaultAppSettings,
+    })
+    const markdown = buildMarkdownReport(payload)
+
+    expect(markdown).toContain('# SkillDesk 扫描报告')
+    expect(markdown).toContain('- 扩展总数: 4')
+    expect(markdown).toContain('## 问题')
+    expect(markdown).toContain('Command description is missing.')
+    expect(markdown).toContain('OpenAI Docs')
   })
 })

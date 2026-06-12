@@ -10,7 +10,7 @@ import {
   saveCachedReport,
   saveLocale,
 } from './app/cache'
-import { buildExportPayload } from './app/exportReport'
+import { buildExportPayload, buildMarkdownReport } from './app/exportReport'
 import { appCopy, nextLocale } from './app/i18n'
 import './App.css'
 import {
@@ -105,22 +105,42 @@ function App({ initialView = 'overview' }: { initialView?: ViewKey } = {}) {
     }
   }
 
+  function currentExportPayload() {
+    const parsedReport = scanReportSchema.parse(report)
+    return buildExportPayload({
+      exportedAt: new Date().toISOString(),
+      report: parsedReport,
+      reportSource: scanState,
+      settings: {
+        ...settings,
+        locale,
+      },
+    })
+  }
+
   async function exportCurrentReport() {
     setExportMessage('')
 
     try {
-      const parsedReport = scanReportSchema.parse(report)
-      const exportPayload = buildExportPayload({
-        exportedAt: new Date().toISOString(),
-        report: parsedReport,
-        reportSource: scanState,
-        settings: {
-          ...settings,
-          locale,
-        },
-      })
+      const exportPayload = currentExportPayload()
       const exportPath = await invoke<string>('export_scan_report', {
         report: exportPayload,
+      })
+      setExportMessage(`${copy.dashboard.exportSuccess}: ${exportPath}`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      setExportMessage(`${copy.dashboard.exportError}: ${message}`)
+    }
+  }
+
+  async function exportCurrentMarkdownReport() {
+    setExportMessage('')
+
+    try {
+      const exportPayload = currentExportPayload()
+      const exportPath = await invoke<string>('export_markdown_report', {
+        markdown: buildMarkdownReport(exportPayload),
+        generatedAt: exportPayload.reportSummary.generatedAt,
       })
       setExportMessage(`${copy.dashboard.exportSuccess}: ${exportPath}`)
     } catch (error) {
@@ -194,7 +214,15 @@ function App({ initialView = 'overview' }: { initialView?: ViewKey } = {}) {
               disabled={scanState === 'scanning'}
               onClick={exportCurrentReport}
             >
-              {copy.dashboard.exportButton}
+              {copy.dashboard.exportJsonButton}
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={scanState === 'scanning'}
+              onClick={exportCurrentMarkdownReport}
+            >
+              {copy.dashboard.exportMarkdownButton}
             </button>
           </div>
         </header>

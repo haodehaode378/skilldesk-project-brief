@@ -17,6 +17,20 @@ pub fn export_scan_report(report: Value) -> Result<String, String> {
     Ok(export_path.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+pub fn export_markdown_report(markdown: String, generated_at: String) -> Result<String, String> {
+    let export_dir = downloads_dir()
+        .ok_or_else(|| "Could not resolve the Downloads directory.".to_string())?
+        .join("SkillDesk");
+    fs::create_dir_all(&export_dir).map_err(|error| error.to_string())?;
+
+    let file_name = format!("skilldesk-report-{}.md", safe_file_stamp(&generated_at));
+    let export_path = export_dir.join(file_name);
+
+    fs::write(&export_path, markdown).map_err(|error| error.to_string())?;
+    Ok(export_path.to_string_lossy().to_string())
+}
+
 fn report_generated_at(report: &Value) -> Option<&str> {
     report
         .get("scanReport")
@@ -78,6 +92,14 @@ mod tests {
         });
 
         assert_eq!(report_generated_at(&report), Some("2026-06-07T10:40:00Z"));
+    }
+
+    #[test]
+    fn creates_markdown_file_name_stamp() {
+        assert_eq!(
+            safe_file_stamp("2026-06-07T12:00:00.000Z"),
+            "2026-06-07T12-00-00-000Z"
+        );
     }
 
     #[test]
