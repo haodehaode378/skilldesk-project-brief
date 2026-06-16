@@ -173,14 +173,14 @@ type AppCopy = {
 
 export const appCopy: Record<Locale, AppCopy> = {
   'zh-CN': {
-    brandSubtitle: '本地扩展体检',
+    brandSubtitle: '本地扩展健康审计',
     nav: {
       overview: '概览',
-      extensions: '扩展',
+      extensions: '扩展清单',
       mcpServers: 'MCP 服务',
       plugins: '插件',
       sources: '来源',
-      issues: '问题',
+      issues: '问题队列',
       settings: '设置',
     },
     dashboard: {
@@ -318,23 +318,25 @@ export const appCopy: Record<Locale, AppCopy> = {
     },
     views: {
       extensionsTitle: '扩展清单',
-      extensionsBody: '统一展示 Skill、命令、Agent、插件、MCP 和项目指令文件。',
+      extensionsBody:
+        '统一展示 Skill、命令、Agent、插件、MCP 和项目指令文件。',
       detailTitle: '详情',
       mcpTitle: 'MCP 服务',
       pluginsTitle: '插件',
       sourcesTitle: '来源',
       instructionFilesTitle: '项目指令文件',
-      issuesTitle: '问题',
+      issuesTitle: '问题队列',
       settingsTitle: '设置',
       settingsBody: '界面语言和最近一次扫描报告会缓存在本机浏览器存储中。',
       languageSetting: '界面语言',
       pluginCacheMode: '插件缓存扫描',
       mcpProbePolicy: 'MCP 探测策略',
       defaultScanRoots: '默认扫描范围',
-      scanRootsHelp: '每行一个扫描根。仅支持 MVP 明确的 Skill、命令、Agent、插件、MCP 配置和项目指令文件来源。',
+      scanRootsHelp:
+        '每行一个扫描根。仅支持 MVP 明确的 Skill、命令、Agent、插件、MCP 配置和项目指令文件来源。',
       scanSafety: '扫描安全',
       scanSafetyBody:
-        '当前版本只读取文件元数据和安全摘要，不执行脚本、hooks、插件命令或 Agent 任务。',
+        '当前版本仅读取文件元数据和安全摘要，不执行脚本、hooks、插件命令或 Agent 任务。',
       scannerSelfCheck: '扫描器自检',
       scannerCapabilities: '扫描能力',
       readOnlyScanning: '只读扫描',
@@ -342,7 +344,8 @@ export const appCopy: Record<Locale, AppCopy> = {
       mcpProbeDisabled: '已禁用主动连接探测',
       mcpProbeLocalOnly: '仅允许本地 MCP 轻量探测',
       mcpProbeAll: '允许本地和远程 MCP 轻量探测',
-      readOnlyNotice: '只读模式：不会执行脚本、hooks、插件命令或 Agent 任务。',
+      readOnlyNotice:
+        '只读模式：不会执行脚本、hooks、插件命令或 Agent 任务。',
     },
   },
   'en-US': {

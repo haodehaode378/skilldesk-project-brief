@@ -183,6 +183,10 @@ function App({ initialView = 'overview' }: { initialView?: ViewKey } = {}) {
             </button>
           ))}
         </nav>
+        <div className="sidebar-note">
+          <span>{copy.views.readOnlyScanning}</span>
+          <p>{copy.views.readOnlyNotice}</p>
+        </div>
       </aside>
 
       <section className="workspace">
@@ -192,6 +196,11 @@ function App({ initialView = 'overview' }: { initialView?: ViewKey } = {}) {
             <h2>{copy.dashboard.title}</h2>
           </div>
           <div className="topbar-actions">
+            <span className={`scan-state scan-state-${scanState}`}>
+              {scanState === 'local' || scanState === 'cached'
+                ? copy.dashboard.localPhaseTag
+                : copy.dashboard.phaseTag}
+            </span>
             <button
               type="button"
               className="secondary-button"
