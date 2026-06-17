@@ -5,9 +5,11 @@ import {
   loadAppSettings,
   loadCachedReport,
   loadLocale,
+  loadViewPreferences,
   saveAppSettings,
   saveCachedReport,
   saveLocale,
+  saveViewPreferences,
 } from '../app/cache'
 import { fixtureScanReport } from '../fixtures'
 
@@ -65,6 +67,41 @@ describe('app cache', () => {
 
     expect(loadAppSettings(storage).locale).toBe('zh-CN')
     expect(storage.getItem('skilldesk.settings')).toBeNull()
+  })
+
+  it('saves and loads view preferences', () => {
+    const storage = createStorage()
+
+    saveViewPreferences(
+      {
+        extensions: {
+          statusFilter: 'needs-review',
+          kindFilter: 'skill',
+          query: 'docs',
+          sortKey: 'issues',
+          sortDirection: 'desc',
+        },
+        issues: {
+          severityFilter: 'medium',
+          query: 'metadata',
+        },
+      },
+      storage,
+    )
+
+    expect(loadViewPreferences(storage)).toEqual({
+      extensions: {
+        statusFilter: 'needs-review',
+        kindFilter: 'skill',
+        query: 'docs',
+        sortKey: 'issues',
+        sortDirection: 'desc',
+      },
+      issues: {
+        severityFilter: 'medium',
+        query: 'metadata',
+      },
+    })
   })
 
   it('saves and loads the latest scan report', () => {

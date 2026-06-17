@@ -20,9 +20,11 @@ import type {
 } from '../model'
 
 import {
+  type ExtensionSortKey,
   type EntityKindFilter,
   type IssueSeverityFilter,
   type ScanState,
+  type SortDirection,
   type StatusFilter,
 } from './viewState'
 
@@ -214,6 +216,9 @@ export function ExtensionsView({
   onKindFilterChange,
   query,
   onQueryChange,
+  sortKey,
+  sortDirection,
+  onSortChange,
   selectedEntityId,
   onSelect,
 }: {
@@ -225,13 +230,15 @@ export function ExtensionsView({
   onKindFilterChange: (kind: EntityKindFilter) => void
   query: string
   onQueryChange: (query: string) => void
+  sortKey: ExtensionSortKey
+  sortDirection: SortDirection
+  onSortChange: (sortKey: ExtensionSortKey, sortDirection: SortDirection) => void
   selectedEntityId?: string
   onSelect: (id: string) => void
 }) {
   const normalizedQuery = query.trim().toLowerCase()
-  const filteredEntities = useMemo(
-    () =>
-      entities.filter((entity) => {
+  const filteredEntities = useMemo(() => {
+    const matchingEntities = entities.filter((entity) => {
         const matchesStatus =
           statusFilter === 'all' || entity.health.status === statusFilter
         const matchesKind = kindFilter === 'all' || entity.kind === kindFilter
@@ -250,9 +257,10 @@ export function ExtensionsView({
           normalizedQuery.length === 0 || searchable.includes(normalizedQuery)
 
         return matchesStatus && matchesKind && matchesQuery
-      }),
-    [entities, kindFilter, normalizedQuery, statusFilter],
-  )
+    })
+
+    return sortEntities(matchingEntities, sortKey, sortDirection)
+  }, [entities, kindFilter, normalizedQuery, sortDirection, sortKey, statusFilter])
   const selectedEntity =
     filteredEntities.find((entity) => entity.id === selectedEntityId) ??
     filteredEntities[0]
@@ -291,6 +299,9 @@ export function ExtensionsView({
             copy={copy}
             entities={filteredEntities}
             onSelect={onSelect}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onSortChange={onSortChange}
             selectedEntityId={selectedEntity?.id}
           />
         ) : (
@@ -593,6 +604,7 @@ export function IssuesView({
   onSeverityFilterChange,
   query,
   onQueryChange,
+  onOpenEntity,
 }: {
   copy: typeof appCopy['zh-CN']
   report: ScanReport
@@ -600,6 +612,7 @@ export function IssuesView({
   onSeverityFilterChange: (severity: IssueSeverityFilter) => void
   query: string
   onQueryChange: (query: string) => void
+  onOpenEntity: (entityId: string) => void
 }) {
   const normalizedQuery = query.trim().toLowerCase()
   const filteredIssues = useMemo(
@@ -628,6 +641,10 @@ export function IssuesView({
   const resultCount = copy.labels.resultCount
     .replace('{shown}', String(filteredIssues.length))
     .replace('{total}', String(report.issues.length))
+  const entityByIssueId = useMemo(
+    () => buildIssueEntityMap(report.entities),
+    [report.entities],
+  )
 
   return (
     <section className="table-panel">
@@ -651,9 +668,23 @@ export function IssuesView({
       />
       {filteredIssues.length > 0 ? (
         <div className="issue-card-list">
-          {filteredIssues.map((issue) => (
-            <IssueCard key={issue.id} copy={copy} issue={issue} />
-          ))}
+          {filteredIssues.map((issue) => {
+            const owningEntity = findIssueEntity(
+              issue,
+              report.entities,
+              entityByIssueId,
+            )
+
+            return (
+              <IssueCard
+                key={issue.id}
+                copy={copy}
+                issue={issue}
+                entity={owningEntity}
+                onOpenEntity={owningEntity ? onOpenEntity : undefined}
+              />
+            )
+          })}
         </div>
       ) : (
         <EmptyState
@@ -812,21 +843,62 @@ function EntityTable({
   entities,
   selectedEntityId,
   onSelect,
+  sortKey,
+  sortDirection,
+  onSortChange,
 }: {
   copy: typeof appCopy['zh-CN']
   entities: ManagedEntity[]
   selectedEntityId?: string
   onSelect?: (id: string) => void
+  sortKey?: ExtensionSortKey
+  sortDirection?: SortDirection
+  onSortChange?: (sortKey: ExtensionSortKey, sortDirection: SortDirection) => void
 }) {
+  function sortLabel(key: ExtensionSortKey, label: string) {
+    if (sortKey !== key) {
+      return label
+    }
+
+    return `${label} ${sortDirection === 'asc' ? '↑' : '↓'}`
+  }
+
+  function requestSort(key: ExtensionSortKey) {
+    if (!onSortChange) {
+      return
+    }
+
+    const nextDirection =
+      sortKey === key && sortDirection === 'asc' ? 'desc' : 'asc'
+    onSortChange(key, nextDirection)
+  }
+
+  function sortableHeader(key: ExtensionSortKey, label: string) {
+    if (!onSortChange) {
+      return label
+    }
+
+    return (
+      <button
+        type="button"
+        className="table-sort-button"
+        aria-pressed={sortKey === key}
+        onClick={() => requestSort(key)}
+      >
+        {sortLabel(key, label)}
+      </button>
+    )
+  }
+
   return (
     <table>
       <thead>
         <tr>
-          <th>{copy.labels.name}</th>
-          <th>{copy.labels.kind}</th>
-          <th>{copy.labels.platform}</th>
-          <th>{copy.labels.status}</th>
-          <th>{copy.labels.issues}</th>
+          <th>{sortableHeader('name', copy.labels.name)}</th>
+          <th>{sortableHeader('kind', copy.labels.kind)}</th>
+          <th>{sortableHeader('platform', copy.labels.platform)}</th>
+          <th>{sortableHeader('health', copy.labels.status)}</th>
+          <th>{sortableHeader('issues', copy.labels.issues)}</th>
         </tr>
       </thead>
       <tbody>
@@ -1064,10 +1136,14 @@ function IssueCard({
   copy,
   issue,
   compact = false,
+  entity,
+  onOpenEntity,
 }: {
   copy: typeof appCopy['zh-CN']
   issue: HealthIssue
   compact?: boolean
+  entity?: ManagedEntity
+  onOpenEntity?: (entityId: string) => void
 }) {
   return (
     <article className={compact ? 'issue-card issue-card-compact' : 'issue-card'}>
@@ -1102,7 +1178,118 @@ function IssueCard({
           </div>
         </dl>
       )}
+      {!compact && entity && onOpenEntity && (
+        <button
+          type="button"
+          className="secondary-button issue-entity-button"
+          onClick={() => onOpenEntity(entity.id)}
+        >
+          {entity.title ?? entity.name}
+        </button>
+      )}
     </article>
   )
+}
+
+function sortEntities(
+  entities: ManagedEntity[],
+  sortKey: ExtensionSortKey,
+  sortDirection: SortDirection,
+) {
+  const direction = sortDirection === 'asc' ? 1 : -1
+
+  return [...entities].sort((left, right) => {
+    const comparison = compareEntities(left, right, sortKey)
+
+    if (comparison !== 0) {
+      return comparison * direction
+    }
+
+    return compareText(left.title ?? left.name, right.title ?? right.name)
+  })
+}
+
+function compareEntities(
+  left: ManagedEntity,
+  right: ManagedEntity,
+  sortKey: ExtensionSortKey,
+) {
+  switch (sortKey) {
+    case 'health':
+      return (
+        healthStatusRank(left.health.status) -
+          healthStatusRank(right.health.status) ||
+        right.health.issues.length - left.health.issues.length ||
+        compareText(left.kind, right.kind)
+      )
+    case 'name':
+      return compareText(left.title ?? left.name, right.title ?? right.name)
+    case 'kind':
+      return compareText(left.kind, right.kind)
+    case 'platform':
+      return compareText(left.platform, right.platform)
+    case 'issues':
+      return left.health.issues.length - right.health.issues.length
+  }
+}
+
+function healthStatusRank(status: ManagedEntity['health']['status']) {
+  const ranks: Record<ManagedEntity['health']['status'], number> = {
+    broken: 0,
+    'at-risk': 1,
+    'needs-review': 2,
+    ok: 3,
+  }
+
+  return ranks[status]
+}
+
+function compareText(left: string, right: string) {
+  return left.localeCompare(right, undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  })
+}
+
+function buildIssueEntityMap(entities: ManagedEntity[]) {
+  const issueEntityMap = new Map<string, ManagedEntity>()
+
+  for (const entity of entities) {
+    for (const issue of entity.health.issues) {
+      issueEntityMap.set(issue.id, entity)
+    }
+  }
+
+  return issueEntityMap
+}
+
+function findIssueEntity(
+  issue: HealthIssue,
+  entities: ManagedEntity[],
+  entityByIssueId: Map<string, ManagedEntity>,
+) {
+  const exactMatch = entityByIssueId.get(issue.id)
+  if (exactMatch) {
+    return exactMatch
+  }
+
+  const issuePath = issue.file ?? issue.evidence
+  if (!issuePath) {
+    return undefined
+  }
+
+  const normalizedIssuePath = normalizePath(issuePath)
+
+  return entities.find((entity) => {
+    const normalizedEntityPath = normalizePath(entity.path)
+    return (
+      normalizedIssuePath.startsWith(normalizedEntityPath) ||
+      normalizedEntityPath.startsWith(normalizedIssuePath)
+    )
+  })
+}
+
+function normalizePath(path: string) {
+  return path.replaceAll('\\', '/').toLowerCase()
 }
 

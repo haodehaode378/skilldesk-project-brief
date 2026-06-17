@@ -25,6 +25,36 @@ export type StatusFilter = HealthStatus | 'all'
 export type EntityKindFilter = EntityKind | 'all'
 export type IssueSeverityFilter = IssueSeverity | 'all'
 export type ScanState = ReportSource
+export type ExtensionSortKey = 'health' | 'name' | 'kind' | 'platform' | 'issues'
+export type SortDirection = 'asc' | 'desc'
+
+export type ViewPreferences = {
+  extensions: {
+    statusFilter: StatusFilter
+    kindFilter: EntityKindFilter
+    query: string
+    sortKey: ExtensionSortKey
+    sortDirection: SortDirection
+  }
+  issues: {
+    severityFilter: IssueSeverityFilter
+    query: string
+  }
+}
+
+export const defaultViewPreferences: ViewPreferences = {
+  extensions: {
+    statusFilter: 'all',
+    kindFilter: 'all',
+    query: '',
+    sortKey: 'health',
+    sortDirection: 'asc',
+  },
+  issues: {
+    severityFilter: 'all',
+    query: '',
+  },
+}
 
 export const statusFilters: StatusFilter[] = [
   'all',

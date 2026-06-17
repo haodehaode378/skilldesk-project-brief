@@ -584,6 +584,23 @@ th {
   font-weight: 700;
 }
 
+.table-sort-button {
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+  text-align: left;
+}
+
+.table-sort-button:hover,
+.table-sort-button[aria-pressed='true'] {
+  background: transparent;
+  color: var(--text-h);
+}
+
 td {
   color: var(--text);
 }
@@ -759,6 +776,11 @@ dd {
 
 .issue-card-compact {
   padding: 10px;
+}
+
+.issue-entity-button {
+  justify-self: start;
+  margin-top: 2px;
 }
 
 .severity-badge {

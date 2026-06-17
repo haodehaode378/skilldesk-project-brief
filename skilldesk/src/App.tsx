@@ -6,9 +6,11 @@ import {
   loadAppSettings,
   loadCachedReport,
   loadLocale,
+  loadViewPreferences,
   saveAppSettings,
   saveCachedReport,
   saveLocale,
+  saveViewPreferences,
 } from './app/cache'
 import { buildExportPayload, buildMarkdownReport } from './app/exportReport'
 import { appCopy, nextLocale } from './app/i18n'
@@ -26,14 +28,22 @@ import {
   navKeyByView,
   viewOrder,
   type EntityKindFilter,
+  type ExtensionSortKey,
   type IssueSeverityFilter,
   type ScanState,
+  type SortDirection,
   type StatusFilter,
   type ViewKey,
+  type ViewPreferences,
 } from './features/viewState'
 import { fixtureScanReport } from './fixtures'
 import { scanReportSchema } from './model'
 import type { AppSettings, Locale, ScanReport } from './model'
+
+type ViewPreferencesPatch = {
+  extensions?: Partial<ViewPreferences['extensions']>
+  issues?: Partial<ViewPreferences['issues']>
+}
 
 function App({ initialView = 'overview' }: { initialView?: ViewKey } = {}) {
   const [locale, setLocale] = useState<Locale>(() => loadLocale())
@@ -45,15 +55,24 @@ function App({ initialView = 'overview' }: { initialView?: ViewKey } = {}) {
   const [scanState, setScanState] = useState<ScanState>(
     () => (initialCachedReport ? 'cached' : 'fixture'),
   )
+  const [viewPreferences, setViewPreferences] = useState<ViewPreferences>(() =>
+    loadViewPreferences(),
+  )
   const [scanError, setScanError] = useState('')
   const [exportMessage, setExportMessage] = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
+    () => viewPreferences.extensions.statusFilter,
+  )
   const [entityKindFilter, setEntityKindFilter] =
-    useState<EntityKindFilter>('all')
-  const [extensionQuery, setExtensionQuery] = useState('')
+    useState<EntityKindFilter>(() => viewPreferences.extensions.kindFilter)
+  const [extensionQuery, setExtensionQuery] = useState(
+    () => viewPreferences.extensions.query,
+  )
   const [issueSeverityFilter, setIssueSeverityFilter] =
-    useState<IssueSeverityFilter>('all')
-  const [issueQuery, setIssueQuery] = useState('')
+    useState<IssueSeverityFilter>(() => viewPreferences.issues.severityFilter)
+  const [issueQuery, setIssueQuery] = useState(
+    () => viewPreferences.issues.query,
+  )
   const [settings, setSettings] = useState<AppSettings>(() => ({
     ...loadAppSettings(),
     locale,
@@ -66,6 +85,62 @@ function App({ initialView = 'overview' }: { initialView?: ViewKey } = {}) {
   const selectedEntity =
     report.entities.find((entity) => entity.id === selectedEntityId) ??
     report.entities[0]
+
+  function updateViewPreferences(patch: ViewPreferencesPatch) {
+    setViewPreferences((current) => {
+      const nextPreferences = {
+        ...current,
+        ...patch,
+        extensions: {
+          ...current.extensions,
+          ...patch.extensions,
+        },
+        issues: {
+          ...current.issues,
+          ...patch.issues,
+        },
+      }
+      saveViewPreferences(nextPreferences)
+      return nextPreferences
+    })
+  }
+
+  function updateStatusFilter(nextStatus: StatusFilter) {
+    setStatusFilter(nextStatus)
+    updateViewPreferences({ extensions: { statusFilter: nextStatus } })
+  }
+
+  function updateEntityKindFilter(nextKind: EntityKindFilter) {
+    setEntityKindFilter(nextKind)
+    updateViewPreferences({ extensions: { kindFilter: nextKind } })
+  }
+
+  function updateExtensionQuery(nextQuery: string) {
+    setExtensionQuery(nextQuery)
+    updateViewPreferences({ extensions: { query: nextQuery } })
+  }
+
+  function updateExtensionSort(
+    sortKey: ExtensionSortKey,
+    sortDirection: SortDirection,
+  ) {
+    updateViewPreferences({ extensions: { sortKey, sortDirection } })
+  }
+
+  function updateIssueSeverityFilter(nextSeverity: IssueSeverityFilter) {
+    setIssueSeverityFilter(nextSeverity)
+    updateViewPreferences({ issues: { severityFilter: nextSeverity } })
+  }
+
+  function updateIssueQuery(nextQuery: string) {
+    setIssueQuery(nextQuery)
+    updateViewPreferences({ issues: { query: nextQuery } })
+  }
+
+  function openEntityFromIssue(entityId: string) {
+    setSelectedEntityId(entityId)
+    setActiveView('extensions')
+  }
 
   function toggleLocale() {
     const next = nextLocale(locale)
@@ -252,11 +327,14 @@ function App({ initialView = 'overview' }: { initialView?: ViewKey } = {}) {
             copy={copy}
             entities={report.entities}
             statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
+            onStatusFilterChange={updateStatusFilter}
             kindFilter={entityKindFilter}
-            onKindFilterChange={setEntityKindFilter}
+            onKindFilterChange={updateEntityKindFilter}
             query={extensionQuery}
-            onQueryChange={setExtensionQuery}
+            onQueryChange={updateExtensionQuery}
+            sortKey={viewPreferences.extensions.sortKey}
+            sortDirection={viewPreferences.extensions.sortDirection}
+            onSortChange={updateExtensionSort}
             selectedEntityId={selectedEntity?.id}
             onSelect={setSelectedEntityId}
           />
@@ -275,9 +353,10 @@ function App({ initialView = 'overview' }: { initialView?: ViewKey } = {}) {
             copy={copy}
             report={report}
             severityFilter={issueSeverityFilter}
-            onSeverityFilterChange={setIssueSeverityFilter}
+            onSeverityFilterChange={updateIssueSeverityFilter}
             query={issueQuery}
-            onQueryChange={setIssueQuery}
+            onQueryChange={updateIssueQuery}
+            onOpenEntity={openEntityFromIssue}
           />
         )}
         {activeView === 'settings' && (
