@@ -181,6 +181,7 @@ When updating project docs:
 - Use `SECURITY.md` for scanner safety rules.
 - Use `SCAFFOLD_PLAN.md` before creating the Tauri project.
 - Use `UI_SPEC.md` before implementing frontend views.
+- Use `UX_FLOWS.md`, `UI_STATES.md`, and `TABLE_SPEC.md` before changing desktop workflows, UI states, or inventory tables.
 - Keep changes surgical and avoid speculative features.
 - Preserve Windows examples.
 - Preserve the Chinese-first bilingual product decision.
